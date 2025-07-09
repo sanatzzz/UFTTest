@@ -1,0 +1,8 @@
+HTTP/1.1 200 
+Date: Thu, 15 Feb 2024 05:18:47 GMT
+Content-Type: text/html;charset=UTF-8
+Connection: keep-alive
+Access-Control-Allow-Origin: *
+Set-Cookie: JSESSIONID=3D5E8FE80A4F34F9BC48B6E7488B8F91; Path=/smartformup; HttpOnly
+Strict-Transport-Security: max-age=15724800; includeSubDomains
+

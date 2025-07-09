@@ -1,0 +1,17 @@
+[t2]
+FileName1=t2.html
+URL1=https://dev.bluealgo.com/smartformup/loadindex?opportunityId=0060o00001eSIJ0AAO&customerid=cust1005&accesstoken=wKN1KGUKOx8LVgorPyqFB7DyfD8UIlbm
+Total=4
+RequestHeaderFile=t2_RequestHeader.txt
+RequestBodyFile=t2_RequestBody.txt
+ResponseHeaderFile=t2_ResponseHeader.txt
+ContentType=image/png
+SnapshotXmlFile=snapshot_2.xml
+FileName2=t2_flags.png
+URL2=https://cdn.jsdelivr.net/npm/intl-tel-input@18.2.1/build/img/flags.png?1
+FileName3=t2_lock-ic.png
+URL3=https://dev.bluealgo.com/smartformup/ui/lock-ic.png
+FileName4=t2_Olivia.png
+URL4=https://dev.bluealgo.com/smartformup/Olivia.png
+[ProtocolInfo]
+ProtocolId=QTWeb

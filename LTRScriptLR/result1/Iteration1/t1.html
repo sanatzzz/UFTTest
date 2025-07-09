@@ -1,0 +1,208 @@
+
+
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<link href="styles.css" rel="stylesheet" />
+
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link
+	href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap"
+	rel="stylesheet" />
+
+<link
+	href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:ital,wght@0,400;0,600;1,400&display=swap"
+	rel="stylesheet" />
+
+<!--  <link href="https://unpkg.com/@bpmn-io/form-js/dist/assets/form-js.css" rel="stylesheet">  -->
+<link
+	href="https://unpkg.com/@bpmn-io/form-js/dist/assets/flatpickr/light.css"
+	rel="stylesheet" />
+<link rel="stylesheet"
+	href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.3.0/css/all.min.css"
+	integrity="sha512-SzlrxWUlpfuzQ+pcUCosxcglQRNAq/DZjVsC0lE40xsADsfeQoEypE+enwcOiGjk/bSuGGKHEyjSoQ1zVisanQ=="
+	crossorigin="anonymous" referrerpolicy="no-referrer" />
+<title>Form</title>
+</head>
+<style>
+.popup-outer-wrapper {
+	position: absolute;
+	top: 0;
+	left: 0;
+	bottom: 0;
+	right: 0;
+	background-color: rgba(0, 0, 0, 0.2);
+}
+
+.popup-wrapper {
+	position: absolute;
+	top: 50%;
+	left: 50%;
+	transform: translate(-50%, -50%);
+	font-family: Arial, Helvetica, sans-serif;
+	max-width: 50%;
+	margin: 20px auto;
+	padding: 20px;
+	background-color: white;
+	/* background-color: rgb(235, 235, 235); */
+	/* box-shadow: 2px 2px 5px white; */
+	border-radius: 10px;
+}
+
+.popup-wrapper-inner {
+	display: flex;
+	flex-direction: column;
+}
+
+.popup-header-template {
+	display: flex;
+	flex-direction: row;
+	justify-content: space-between;
+	margin-bottom: 20px;
+}
+
+.popup-body {
+	display: flex;
+	flex-direction: row;
+	justify-content: center;
+}
+
+.popup-body-content {
+	display: flex;
+	flex-direction: column;
+	row-gap: 20px;
+}
+
+.popup-main-section {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	border-top: 5px solid #25AE88;
+	border-bottom: 1px solid rgba(0, 0, 0, 0.2);
+	border-left: 1px solid rgba(0, 0, 0, 0.1);
+	border-right: 1px solid rgba(0, 0, 0, 0.1);
+	background-color: white;
+	padding: 40px 30px 20px;
+}
+
+.popup-action-btns-wrapper {
+	display: flex;
+	justify-content: center;
+	column-gap: 10px;
+}
+
+.popup-footer-template {
+	display: flex;
+	justify-content: flex-end;
+	flex-direction: column;
+	row-gap: 10px;
+	align-items: flex-end;
+}
+
+.brads-text {
+	font-size: 0.8em;
+}
+
+.popup-action-btns {
+	padding: 10px 20px;
+	border-radius: 20px;
+	border: none;
+	color: rgba(0, 0, 0, 0.8);
+}
+
+.popup-action-btns:hover {
+	opacity: 0.9;
+	cursor: pointer;
+}
+
+button.close-btn {
+	background-color: #fb4c95;
+}
+
+button.explore-btn {
+	background-color: #ffb100;
+}
+
+.fa-brands {
+	color: rgba(0, 0, 0, 0.8);
+	margin-right: 5px;
+}
+
+.fa-linkedin {
+	margin-right: 0px;
+}
+
+.popup-main-section h3 {
+	margin-bottom: 0px;
+	color: rgba(0, 0, 0, 0.8);
+	font-weight: 400;
+}
+
+.popup-main-section p {
+	font-size: 0.8em;
+}
+
+.hidePopup {
+	display: none;
+}
+</style>
+<body onload="openPopup()">
+
+	<div class="popup-outer-wrapper hidePopup" id="popup">
+		<div class="popup-wrapper">
+			<div class="popup-wrapper-inner">
+				
+				<div class="popup-body">
+					<div class="popup-body-content">
+						<div class="popup-main-section">
+							<div class="success-icon-wrapper">
+								<img width="50px" height="50px" src="ui/error.svg" alt="">
+							</div>
+							<div>
+								<h3>ERROR!</h3>
+							</div>
+							<div>
+								
+								<h3>
+									Sorry link expire!
+								</h3>
+							</div>
+							<div>
+								<p>
+									Please contact to system admin!
+								</p>
+							</div>
+						</div>
+						
+					</div>
+				</div>
+				
+			</div>
+		</div>
+	</div>
+</body>
+<script type="text/javascript">
+	function openPopup() {
+		document.getElementById('popup').classList.remove('hidePopup');
+	}
+	document.getElementById('closeBtn').addEventListener('click', function() {
+		document.getElementById('popup').classList.add('hidePopup');
+	});
+
+	document.getElementById('exploreBtn').addEventListener('click', function() {
+		document.getElementById('popup').classList.add('hidePopup');
+	});
+</script>
+<script
+	src="https://unpkg.com/@bpmn-io/form-js@0.10.0/dist/form-viewer.umd.js"></script>
+
+<script
+	src="https://cdn.jsdelivr.net/npm/signature_pad@4.0.0/dist/signature_pad.umd.min.js"></script>
+<script src="ui/loadForm.js"></script>
+<script src="ui/script.js"></script>
+</html>

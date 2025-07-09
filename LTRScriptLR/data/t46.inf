@@ -1,0 +1,11 @@
+[t46]
+FileName1=t46_generate_204.html
+URL1=http://www.gstatic.com/generate_204
+Total=1
+ContentType=
+SnapshotXmlFile=snapshot_46.xml
+RequestHeaderFile=t46_RequestHeader.txt
+RequestBodyFile=NONE
+ResponseHeaderFile=t46_ResponseHeader.txt
+[ProtocolInfo]
+ProtocolId=QTWeb

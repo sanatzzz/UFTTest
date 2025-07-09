@@ -1,0 +1,13 @@
+[t3]
+FileName1=t3.html
+URL1=https://dev.bluealgo.com/smartformup/generic
+Total=2
+RequestHeaderFile=t3_RequestHeader.txt
+RequestBodyFile=t3_RequestBody.txt
+ResponseHeaderFile=t3_ResponseHeader.txt
+ContentType=image/svg+xml
+SnapshotXmlFile=snapshot_3.xml
+FileName2=t3_camera.svg
+URL2=https://dev.bluealgo.com/smartformup/camera.svg
+[ProtocolInfo]
+ProtocolId=QTWeb

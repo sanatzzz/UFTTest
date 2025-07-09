@@ -1,0 +1,972 @@
+(function() {
+	renderAll()
+		.then((res) => {
+			if (res) {
+				const PAGE_COUNT = res;
+
+				var signaturePads = {};
+
+				document.querySelectorAll("input[numLength]").forEach((el) => {
+					alert('executing');
+					const numLength = el.getAttribute("numLength");
+					el.setAttribute(
+						"oninvalid",
+						`this.setCustomValidity('Enter a ${numLength} digit number');`
+					);
+					el.setAttribute("oninput", "this.setCustomValidity('');");
+					el.setAttribute("onvalid", "this.setCustomValidity('');");
+					el.setAttribute("onchange", "this.setCustomValidity('');");
+
+					el.setAttribute("min", "1" + "0".repeat(numLength - 1));
+					el.setAttribute("max", "9".repeat(numLength));
+				});
+
+				let currentPage = 1;
+				let currentSubPage = 1;
+				let idpcount = 0;
+				let currentIdnSubPage = 1;
+				let idpidcount = 0;
+				const form = document.getElementById("form");
+
+				const prevBtn = document.getElementById("prev-btn");
+				const saveBtn = document.getElementById("save-btn");
+				const esignBtn = document.getElementById("sign-button");
+				const modal = document.getElementById("myModal");
+				const signModal = document.getElementById("signModal");
+				const closeBtn = document.querySelectorAll("#myModal .close")[0];
+				const closeBtnSign = document.querySelectorAll("#signModal .close")[0];
+				const esnBtn = document.getElementById("esign-save");
+				const previewbtngreen = document.getElementById("preview-btn");
+				const prewesnBtn = document.getElementById("individual-sign-button");
+				const previewfaIcon = document.getElementById("preview-btn-icon");
+
+
+
+				prewesnBtn.onclick = function() {
+					modal.style.display = "none";
+					myEsignFunction()
+				};
+
+				prevBtn.onclick = (e) => {
+					e.preventDefault();
+					document.getElementById("form-btn").innerText = "Next";
+					//previewfaIcon.classList.add("hidden");
+					esignBtn.classList.add("hidden");
+
+					// hardedd value for skip pafe self descartion for
+					const proName = schema["first-page"]["projectName"];
+					if (currentPage == 9 && proName == "Raintree Boulevard") {
+						closePage(currentPage);
+						currentPage = 8;
+						renderPage(currentPage);
+					}
+
+					// if (currentPage - 1 === 2) {
+					if (currentPage - 1 === 3) {
+						closePage(currentPage);
+						currentPage--;
+						renderPage(currentPage);
+						closeSubPage(currentPage, currentSubPage, idpcount);
+						// } else if (currentPage === 2) {
+					} else if (currentPage === 3) {
+						if (currentSubPage - 1 >= 1) {
+							currentSubPage--;
+							window.scrollTo({ top: 0, behavior: "smooth" });
+							closeSubPage(currentPage, currentSubPage, idpcount);
+						} else {
+							closePage(currentPage);
+							currentPage--;
+							renderPage(currentPage);
+						}
+						// } else if (currentPage - 1 === 4) {
+					} else if (currentPage - 1 === 2) {
+						closePage(currentPage);
+						currentPage--;
+						renderPage(currentPage);
+						closeSubPage(currentPage, currentIdnSubPage, idpidcount);
+						// } else if (currentPage === 4) {
+					} else if (currentPage === 2) {
+						if (currentIdnSubPage - 1 >= 1) {
+							currentIdnSubPage--;
+							window.scrollTo({ top: 0, behavior: "smooth" });
+							closeSubPage(currentPage, currentIdnSubPage, idpidcount);
+						} else {
+							closePage(currentPage);
+							currentPage--;
+							renderPage(currentPage);
+						}
+					} else {
+						closePage(currentPage);
+						currentPage--;
+						renderPage(currentPage);
+					}
+				};
+
+				closeBtn.onclick = () => {
+					modal.style.display = "none";
+				};
+
+				closeBtnSign.onclick = () => {
+					signModal.style.display = "none";
+				};
+
+				saveBtn.onclick = (e) => {
+					e.preventDefault();
+
+				};
+
+				esignBtn.onclick = function(e) {
+					myEsignFunction()
+				};
+
+				esnBtn.onclick = function(e) {
+					finalSave();
+				};
+
+				function closePage(page) {
+					const pgCtn = document.getElementById(`page-${page}`);
+					if (pgCtn) {
+						const elements = pgCtn.querySelectorAll("input, textarea, select");
+
+						pgCtn.classList.add("hidden");
+
+						elements.forEach((el) => {
+							el.disabled = true;
+						});
+					}
+				}
+
+				function closeSubPage(page, subpage, count) {
+					for (let i = 1; i <= count; i++) {
+
+						let pgCtn = document.getElementById(`page${page}${i}`);
+						// console.log(`page${page}${i}`);
+						let elements = pgCtn.querySelectorAll("input, textarea, select");
+						if (i != subpage) {
+							pgCtn.classList.add("hidden");
+							elements.forEach((el) => {
+								el.disabled = true;
+							});
+						} else {
+							pgCtn.classList.remove("hidden");
+							elements.forEach((el) => {
+								if (
+									!el.classList.contains("not_editable") &&
+									!el.classList.contains("nonap_disabled")
+								) {
+									el.removeAttribute("disabled");
+								}
+							});
+						}
+					}
+				}
+
+				function verifyCanvas(pageEle) {
+					const canvas = pageEle.querySelectorAll('canvas[for="sign"]');
+					for (const [sigPad, canvasEl] of Array.from(canvas.values()).map(
+						(c) => [signaturePads[c.id], c]
+					)) {
+						if (canvasEl.hasAttribute("required") && sigPad.isEmpty()) {
+							return false;
+						}
+					}
+					return true;
+				}
+
+				function renderPage(page) {
+					const leftPannel = document.getElementById("left-pannel");
+
+
+					if (page === PAGE_COUNT) {
+						document.getElementById("form-btn").innerText = "Submit without E-sign";
+						if (schema['first-page']['quotationpdf'] != '') {
+							let quotationBtn = document.querySelector('#quotation-btn');
+							if (quotationBtn) {
+								quotationBtn.classList.remove('hidden');
+								quotationBtn.addEventListener('click', (event) => {
+									showQuotation();
+								});
+							}
+
+						}
+						esignBtn.classList.remove("hidden");
+
+						let isConcent = true;
+						const fir_pData = schema["first-page"];
+
+						if (fir_pData) {
+							const formData = fir_pData["consentform"];     // To be uncommented
+							// const formData = true;     // To be commented
+
+							if (!formData || formData === "false") {
+								isConcent = false;
+							}
+						}
+						if (isConcent || fir_pData['quotationpdf'] != '') {
+							document.getElementById("form-btn").setAttribute("disabled", true);
+							document.getElementById("sign-button").setAttribute("disabled", true);
+						}
+						else {
+							document.getElementById("form-btn").removeAttribute("disabled");
+							document.getElementById("sign-button").removeAttribute("disabled");
+						}
+
+					} else {
+						document.getElementById("form-btn").removeAttribute("disabled");
+						document.getElementById("sign-button").removeAttribute("disabled");
+
+					}
+
+					if (page == 1) {
+						leftPannel.classList.add("hidden");
+					} else {
+						leftPannel.classList.remove("hidden");
+					}
+
+					if (page > 1) {
+						prevBtn.classList.remove("hidden");
+					} else {
+						prevBtn.classList.add("hidden");
+					}
+
+					const newPgCtn = document.getElementById(`page-${page}`);
+					if (page === 1) {
+						const oldPgCtn = document.getElementById(`page-${page + 1}`);
+						oldPgCtn.innerHTML = '';
+					}
+					newPgCtn.classList.remove("hidden");
+
+					newPgCtn.querySelectorAll("input, textarea, select").forEach((el) => {
+						if (
+							!el.classList.contains("not_editable") &&
+							!el.classList.contains("nonap_disabled")
+						) {
+							el.removeAttribute("disabled");
+						}
+
+						if (el.classList.contains("nonap_disabled")) {
+							el.setAttribute("disabled", true);
+						}
+					});
+
+					window.scrollTo({ top: 0, behavior: "smooth" });
+				}
+
+
+
+				document.getElementById("form-btn").onclick = (e) => {
+					const proName = schema["first-page"]["projectName"];
+					//hardcode skip for particular project	
+					if (currentPage == 7 && proName == "Raintree Boulevard") {
+						closePage(7);
+						currentPage = 9;
+						renderPage(currentPage);
+						return;
+					}
+
+					// Stop user clicking next button if image is being uploaded
+					if (currentPage == 2) {
+						if (imageUploading.length > 0) {
+							alert('Please wait! Uploading image to server');
+							return;
+						}
+					}
+
+					if (document.getElementById('form-btn').innerText == 'Submit without E-sign') {
+						const pgCtn = document.getElementById(`page-${currentPage}`);
+						const mycheckEle = pgCtn.querySelector(".tnc_agree");
+						if (mycheckEle) {
+							if (!mycheckEle.checked) {
+								const invText = hasSomeNextSiblingTheClass(
+									mycheckEle,
+									"tnc_agreeText"
+								);
+								invText.style.color = "red";
+								return;
+							} else {
+
+								finalSave();
+								return;
+							}
+						}
+					}
+					// if (currentPage != 2 && currentPage != 4) {
+					if (currentPage != 2 && currentPage != 3) {
+						const pgCtn = document.getElementById(`page-${currentPage}`);
+						const mycheckEle = pgCtn.querySelector(".tnc_agree");
+						if (mycheckEle) {
+							if (!mycheckEle.checked) {
+								const invText = hasSomeNextSiblingTheClass(
+									mycheckEle,
+									"tnc_agreeText"
+								);
+								invText.style.color = "red";
+								return;
+							}
+						}
+					} else {
+						if (currentPage === 2) {
+							// Handling page 3 special bug
+							const page3Childs = document.getElementById('page-3').children;
+
+							let allVisible = true;
+							for (let i = 1; i < page3Childs.length; i++) {
+								if (page3Childs[i].classList.contains('hidden')) {
+									allVisible = false;
+									break;
+								}
+							}
+							if (allVisible) {
+								for (let i = 2; i < page3Childs.length; i++) {
+									page3Childs[i].classList.add('hidden');
+								}
+							}
+
+							// Bug fix ends here
+						}
+
+						// if (currentPage === 2) {
+						if (currentPage === 3) {
+							// Make PAN card field non-mandatory if 
+							// I do not have a pan card checkbox is checked
+							if (document.getElementById('panNotavailable2')) {
+								if (document.getElementById('panNotavailable2').checked) {
+									document.getElementById('A2_Individual_PAN_No_1').removeAttribute('required');
+								}
+								else {
+									document.getElementById('A2_Individual_PAN_No_1').setAttribute('required', true);
+								}
+							}
+
+							if (document.getElementById('panNotavailable3')) {
+								if (document.getElementById('panNotavailable3').checked) {
+									document.getElementById('A3_Individual_PAN_No_1').removeAttribute('required');
+								}
+								else {
+									document.getElementById('A3_Individual_PAN_No_1').setAttribute('required', true);
+								}
+							}
+
+							const totalApplicants = schema["applicant-details"].applicantCount;
+
+							// alert(totalApplicants);
+							// console.log(currentSubPage);
+							// for(let i=(currentSubPage*2 - 1);i<=Math.min(totalApplicants, currentSubPage*2);i++){
+							//   console.log(i);
+							// }
+							const pgsubCtncheck = document.getElementById(
+								`page${currentPage}${currentSubPage}`
+							);
+
+							// Using querySelectorAll() as page 3 can have more
+							// than one t&c checkboxes
+
+							const mycheckEles = pgsubCtncheck.querySelectorAll(".tnc_agree");
+							for (const mycheckEle of mycheckEles) {   // manoj
+								if (mycheckEle.id === 'page3_last_custom_id') {
+									continue;
+								}
+								if (mycheckEle) {
+									if (!mycheckEle.checked) {
+										const invText = hasSomeNextSiblingTheClass(
+											mycheckEle,
+											"tnc_agreeText"
+										);
+										invText.style.color = "red";
+										return;
+									}
+								}
+							}
+							// } else if (currentPage === 4) {
+						} else if (currentPage === 2) {
+							const pgsubCtncheck = document.getElementById(
+								`page${currentPage}${currentIdnSubPage}`
+							);
+							const mycheckEle = pgsubCtncheck.querySelector(".tnc_agree");
+							if (mycheckEle) {
+								if (!mycheckEle.checked) {
+									const invText = hasSomeNextSiblingTheClass(
+										mycheckEle,
+										"tnc_agreeText"
+									);
+									invText.style.color = "red";
+									return;
+								}
+							}
+						}
+					}
+
+					// Validating whether OTP is verified successfully or not
+					if (currentPage === 5) {
+						if (document.querySelector('#CPAGREE')) {
+							if (!document.querySelector('#CPAGREE').checked) {
+								alert('Please provide consent');
+								return;
+							} else {
+								if (!bookingVerified) {
+									alert('OTP not verified');
+									return;
+								}
+							}
+						}
+					}
+
+
+					if (e.target.innerText === "Submit") {
+						sbmitData(false);
+						finalSave();
+					}
+
+					function savedata(crp) {
+						// if (crp > 1) {
+						if (crp > 2) {
+							const finalData = finalSubmit();
+
+							finalData.append(
+								"applicantCount",
+								schema["applicant-details"].applicantCount
+							);
+
+							const requestOptions = {
+								method: "POST",
+								body: finalData,
+								redirect: "follow",
+							};
+
+							fetch(updateFormDataAPI, requestOptions);
+						}
+					}
+					savedata(currentPage);
+
+					if (currentPage < PAGE_COUNT) {
+						e.preventDefault();
+
+						let pageCtn = '';
+						if (currentPage != 3) {
+							pgCtn = document.getElementById(`page-${currentPage}`);
+						}
+						else {
+							pgCtn = document.getElementById(`page${currentPage}${currentSubPage}`);
+						}
+
+						const elements = pgCtn.querySelectorAll("input, textarea, select");
+
+						// if (currentPage === 4) {
+						if (currentPage === 2) {
+							const pgsubCtncheck = document.getElementById(
+								`page${currentPage}${currentIdnSubPage}`
+							);
+							// if (!verifyMinReq(pgsubCtncheck)) {
+							//   return;
+							// }
+						}
+
+						for (const el of elements) {
+							if (!el.checkValidity()) {
+								el.reportValidity();
+								return;
+							}
+						}
+
+						if (currentPage + 1 === 7) {
+							onloadwin();
+						}
+
+						if (currentPage + 1 === 2) {
+							const myElements = document.querySelectorAll(".apct_type_div");
+
+							let req_type = [];
+							for (let i = 1; i <= myElements.length; i++) {
+								let targetEle = document.getElementById(`applicant_${i}`).value;
+
+								const app_detials = schema["first-page"]["applicant_details"];
+								const customerDetails = {
+									customerid: app_detials[0].customerid,
+									id: app_detials[0].id,
+								};
+
+								const details = {
+									Applicant_Type: targetEle,
+									Applicant_Position: `A${i}`,
+									customerid: customerDetails.customerid,
+									id: customerDetails.id,
+								};
+								req_type.push(details);
+							}
+							if (
+								!document
+									.getElementById(`page-${currentPage + 1}`)
+									.hasChildNodes()
+							) {
+								var myHeaders = new Headers();
+								myHeaders.append("Content-Type", "application/json");
+
+								var raw = JSON.stringify({
+									applicant_details: req_type,
+								});
+
+								const requestOptions = {
+									method: "POST",
+									headers: myHeaders,
+									body: raw,
+									redirect: "follow",
+								};
+
+								document.getElementById('form-btn').disabled = true;
+								fetch(genericAPI, requestOptions)
+									.then((response) => response.json())
+									.then((response) => {
+										document.getElementById('form-btn').disabled = false;
+										const applicant_detailscols = response.applicant_details;
+										const identificationcols = response.cols;
+
+										const availsec =
+											schema["applicant-details"]["sub-sections"][
+											schema["applicant-details"]["sub-sections"].length - 1
+											];
+
+										const schemaArr = applicant_detailscols.concat(availsec);
+										schema["applicant-details"]["sub-sections"] = schemaArr;
+										schema["applicant-details"].applicantCount =
+											response.applicantCount;
+										schema["identification"]["cols"] = response.cols;
+
+										const apctCt = document.getElementById("applicantCount");
+										apctCt.value = response.applicantCount;
+
+										const perPage = schema["applicant-details"]["per-page"];
+
+										let count = applicant_detailscols.length % perPage;
+
+										idpcount =
+											count > 0
+												? (applicant_detailscols.length - count) / perPage + 1
+												: applicant_detailscols.length / perPage;
+
+										let idcount = identificationcols.length % 3;
+										idpidcount =
+											idcount > 0
+												? (identificationcols.length - idcount) / 3 + 1
+												: identificationcols.length / 3;
+
+										const pagedet = renderapplicantSection(
+											applicant_detailscols,
+											idpcount,
+											perPage
+										);
+
+										//append
+										// const frmgrp = document.getElementById(
+										//   `page-${currentPage + 1}`
+										// );
+										const frmgrp = document.getElementById(
+											`page-${currentPage + 2}`
+										);
+										frmgrp.innerHTML = '';
+										frmgrp.append(pagedet);
+
+										frmgrp
+											.querySelectorAll('input[type="checkbox"]')
+											.forEach((ele) => {
+												if (ele.id) {
+													if (
+														ele.id.toLowerCase().includes("same_as_primary")
+													) {
+														ele.onclick = function(e) {
+															sameasPrimary(e.target.checked, e.target.id);
+														};
+
+														sameasPrimary(ele.checked, ele.id);
+													}
+													if (
+														ele.id
+															.toLowerCase()
+															.includes("same_as_permanent_address")
+													) {
+														ele.onclick = function(e) {
+															const crtype = aapplicatnField(e.target.id);
+															factorCdAddress(crtype, e.target.checked);
+														};
+													}
+												}
+											});
+
+										const frmgrp1 = renderIdentification(identificationcols);
+
+										const apli = updateAction(frmgrp);
+										const idnt = updateAction(frmgrp1);
+
+										signaturePads = {
+											...idnt,
+											...apli,
+											...signaturePads,
+										};
+
+										closePage(currentPage);
+										// closePage(4);
+										closePage(3);
+
+										if (!verifyCanvas(pgCtn)) {
+											return;
+										}
+
+										currentPage++;
+										renderPage(currentPage, currentSubPage);
+										closeSubPage(currentPage, currentSubPage, idpcount);
+									})
+									.catch(err => {
+										document.getElementById('form-btn').disabled = false;
+									});
+							} else {
+
+								if (!verifyCanvas(pgCtn)) {
+									return;
+								}
+								closePage(currentPage);
+								currentPage++;
+								renderPage(currentPage);
+								closeSubPage(currentPage, currentSubPage, idpcount);
+							}
+							// } else if (currentPage === 2) {
+						} else if (currentPage === 3) {
+
+							if (currentSubPage + 1 <= idpcount) {
+								let pgsubCtn = document.getElementById(
+									`page${currentPage}${currentIdnSubPage}`
+								);
+
+								if (!verifyCanvas(pgsubCtn)) {
+									return;
+								}
+
+								currentSubPage++;
+								window.scrollTo({ top: 0, behavior: "smooth" });
+								closeSubPage(currentPage, currentSubPage, idpcount);
+							} else {
+								if (!verifyCanvas(pgCtn)) {
+									return;
+								}
+								closePage(currentPage);
+								currentPage++;
+								renderPage(currentPage);
+							}
+							// } else if (currentPage + 1 === 4) {
+						} else if (currentPage + 1 === 2) {
+							if (!verifyCanvas(pgCtn)) {
+								return;
+							}
+							closePage(currentPage);
+							currentPage++;
+							renderPage(currentPage);
+							closeSubPage(currentPage, currentIdnSubPage, idpidcount);
+							// } else if (currentPage === 4) {
+						} else if (currentPage === 2) {
+							if (currentIdnSubPage + 1 <= idpidcount) {
+								const pgsubCtn = document.getElementById(
+									`page${currentPage}${currentIdnSubPage}`
+								);
+								if (!verifyCanvas(pgsubCtn)) {
+									return;
+								}
+
+								currentIdnSubPage++;
+								window.scrollTo({ top: 0, behavior: "smooth" });
+								closeSubPage(currentPage, currentIdnSubPage, idpidcount);
+							} else {
+								if (!verifyCanvas(pgCtn)) {
+									return;
+								}
+
+								closePage(currentPage);
+								currentPage++;
+								renderPage(currentPage);
+
+								setTimeout(() => {
+									// let getItemsA1 = JSON.parse(localStorage.getItem('idDetailsA1'));
+									let getItemsA1 = JSON.parse(idDetailsA1);
+									if (getItemsA1) {
+										for (const key of getItemsA1) {
+											for (const new_val of key.form) {
+												if (new_val.defaultValue && document.getElementById(new_val.id)) {
+													if (new_val.id.includes('AADHAR')) {
+														document.getElementById(new_val.id).value = new_val.defaultValue ? parseInt(new_val.defaultValue.replace(/\s/g, '')) : ''
+													} else {
+														document.getElementById(new_val.id).value = new_val.defaultValue ? new_val.defaultValue : ''
+													}
+												}
+											}
+										}
+									}
+									// localStorage.removeItem('idDetailsA1');
+									idDetailsA1 = '';
+								}, 500);
+							}
+						} else {
+							if (!verifyCanvas(pgCtn)) {
+								return;
+							}
+
+							closePage(currentPage);
+							currentPage++;
+							renderPage(currentPage);
+						}
+					} else {
+						document
+							.querySelectorAll("input, textarea, select")
+							.forEach((e) => {
+								e.removeAttribute("disabled");
+							});
+
+						document.querySelectorAll('canvas[for="sign"]').forEach((e) => {
+							const input = document.createElement("input");
+							input.setAttribute("type", "hidden");
+
+							const sigPad = signaturePads[e.id];
+
+							const dataURI = sigPad.toDataURL();
+
+							input.setAttribute("value", dataURI);
+							input.setAttribute("name", e.getAttribute("name"));
+
+							form.appendChild(input);
+						});
+					}
+				};
+
+				document.querySelectorAll('canvas[for="sign"]').forEach((e) => {
+					signaturePads[e.id] = new SignaturePad(e);
+					e.width = 220;
+					e.height = 80;
+				});
+
+				document.querySelectorAll('button[for="clear-sign"]').forEach((e) => {
+					e.onclick = (ev) => {
+						ev.preventDefault();
+						signaturePads[e.getAttribute("control")].clear();
+					};
+				});
+
+				const pickers = document.querySelectorAll('input[role="photo-picker"]');
+
+				if (pickers) {
+					pickers.forEach((picker) => {
+						const preview = document.getElementById(
+							picker.getAttribute("preview-id")
+						);
+						picker.addEventListener("change", function(e) {
+							const reader = new FileReader();
+							const file = e.target.files[0];
+							reader.onload = (e) => {
+								preview.src = e.target.result;
+							};
+
+							reader.readAsDataURL(file);
+						});
+					});
+				}
+
+
+
+				document.querySelectorAll(".inputCtn").forEach((ctn) => {
+					ctn.addEventListener("click", () => {
+						ctn.querySelector("input,select, textarea").focus();
+					});
+					const label = ctn.querySelector("label");
+					const input = ctn.querySelector(
+						'input[type="text"],input[type="number"],input[type="email"],textarea'
+					);
+
+					// if (input && input.tagName === "TEXTAREA") {
+					//   ctn.classList.add("w-100");
+					// }
+
+					if (label && input) {
+						const type = input.getAttribute("type");
+						if (type === "checkbox") {
+							label.classList.add("flex");
+						}
+
+						input.setAttribute("placeholder", label.innerText);
+
+						if (input.value === "") label.classList.add("hidden");
+
+						input.addEventListener("focus", function() {
+							input.removeAttribute("placeholder");
+							label.classList.remove("hidden");
+						});
+						input.addEventListener("blur", function() {
+							if (input.value == "") label.classList.add("hidden");
+							input.setAttribute("placeholder", label.innerText);
+						});
+					}
+				});
+
+				function sendOTP() {
+					document.getElementById('sending_otp').classList.remove('hide');
+					const phoneNum1 = document.querySelector(
+						"#A1_Individual_Mobile_1"
+					).value;
+					const phoneNum2 = document.querySelector(
+						"#A1_Individual_AdditionalMobile"
+					).value;
+
+					if (phoneNum1 || phoneNum2) {
+						popOTPEle.classList.add("show-modal");
+						let finalPhone = phoneNum1 ? phoneNum1 : phoneNum2;
+						// finalPhone = "91" + finalPhone;
+						finalPhone = '+' + iti.getSelectedCountryData().dialCode + document.getElementById("phone_with_countrycode").value;
+						document.querySelector("#myOTPPopup .otp_phone").innerText =
+							finalPhone;
+
+						const otpHeader = new Headers();
+						otpHeader.append("Content-Type", "application/json");
+
+						const urls = new URL(window.location.href);
+						const searchParams = urls.searchParams;
+
+						const cusId = searchParams.get("customerid");
+						const oprtId = searchParams.get("opportunityId");
+						const primaryEmail = document.getElementById("A1_Individual_Email_1").value;
+						const proName = schema["first-page"]["projectName"];
+						//let myexurl = `?mobileno=${finalPhone}&action=generateotp&customerid=${cusId}&opportunityid=${oprtId}`;
+						let myexurl = `?mobileno=${finalPhone}&action=generateotp&customerid=${cusId}&opportunityid=${oprtId}&email=${primaryEmail}&projectName=${proName}`;
+						let myURL = otpVerifyAPI + myexurl;
+
+						const requestOptions = {
+							method: "POST",
+							headers: otpHeader,
+							body: {},
+							redirect: "follow",
+						};
+
+						fetch(myURL, requestOptions)
+							.then(res => {
+								document.getElementById('sending_otp').classList.add('hide');
+								document.getElementById('sent_otp').classList.remove('hide');
+								if (!document.getElementById('otp_error').classList.contains('hide'))
+									document.getElementById('otp_error').classList.add('hide');
+							})
+							.catch(err => {
+								document.getElementById('sending_otp').classList.add('hide');
+								document.getElementById('otp_error').classList.remove('hide');
+								if (!document.getElementById('sent_otp').classList.contains('hide'))
+									document.getElementById('sent_otp').classList.add('hide');
+							})
+					}
+				}
+
+				const popOTPEle = document.getElementById("myOTPPopup");
+				const veriEle = document.getElementById("CPAGREE");
+				const getOTP = document.getElementById('get_otp');
+				var selectedCountryCode = '91';
+
+
+				// Initialize the intlTelInput plugin on the phone input field
+				var phoneInput = document.getElementById("phone_with_countrycode");
+				var iti = window.intlTelInput(phoneInput, {
+					separateDialCode: true,
+					initialCountry: "in",
+				});
+
+				// Update the country code whenever the user selects a different country
+				iti.promise.then(function() {
+					iti.getSelectedCountryDataPromise().then(function(countryData) {
+						selectedCountryCode = countryData.dialCode;
+						phoneInput.value = '+' + selectedCountryCode + inputPhoneNumber;
+					});
+				});
+
+				veriEle.onchange = function(e) {
+					if (e.target.checked) {
+
+						// Hide OTP sent/error blocks initially
+						if (!document.getElementById('sent_otp').classList.contains('hide'))
+							document.getElementById('sent_otp').classList.add('hide');
+						if (!document.getElementById('otp_error').classList.contains('hide'))
+							document.getElementById('otp_error').classList.add('hide');
+
+						// Set the initial country code
+						selectedCountryCode = iti.getSelectedCountryData().dialCode;
+						const inputPhoneNumber
+							= document.querySelector(
+								"#A1_Individual_Mobile_1"
+							).value || document.querySelector(
+								"#A1_Individual_AdditionalMobile"
+							).value
+						phoneInput.value = inputPhoneNumber;
+						popOTPEle.classList.add("show-modal");
+					}
+				};
+
+				getOTP.addEventListener('click', (event) => {
+					sendOTP();
+				});
+
+				popOTPEle.querySelector(".cancel_Btn").onclick = function() {
+					veriEle.checked = false;
+					popOTPEle.classList.remove("show-modal");
+				};
+
+				popOTPEle.querySelector(".otpresend_Btn").onclick = function() {
+					sendOTP();
+				};
+
+				popOTPEle.querySelector(".verify_Btn").onclick = function() {
+					const urls = new URL(window.location.href);
+					const searchParams = urls.searchParams;
+					const phone = document.querySelector(
+						"#myOTPPopup .otp_phone"
+					).innerText;
+
+					const otpVal = document.querySelector("#myOTPPopup #verifyOtp").value;
+					if (otpVal) {
+						// if (true) {
+						const cusId = searchParams.get("customerid");
+						const oprtId = searchParams.get("opportunityId");
+						let myexurl = `?mobileno=${phone}&action=verifyotp&customerid=${cusId}&opportunityid=${oprtId}&enteredOtp=${otpVal}`;
+						let myURL = otpVerifyAPI + myexurl;
+
+						const otpHeader = new Headers();
+						otpHeader.append("Content-Type", "application/json");
+
+						const requestOptions = {
+							method: "POST",
+							headers: otpHeader,
+							body: {},
+							redirect: "follow",
+						};
+
+						fetch(myURL, requestOptions)
+							.then((response) => response.text())
+							.then((result) => {
+								if (result === "verified") {
+									//if () {
+
+									popOTPEle.querySelector(".warnig-text").innerText = "";
+									popOTPEle.classList.remove("show-modal");
+									veriEle.setAttribute("disabled", true);
+									veriEle.classList.add("not_editable");
+									bookingVerified = true;
+								} else {
+									// popOTPEle.querySelector(".warnig-text").innerText = "";
+									// popOTPEle.classList.remove("show-modal");
+									// veriEle.setAttribute("disabled", true);
+									// veriEle.classList.add("not_editable");
+									// bookingVerified = true;
+									popOTPEle.querySelector(".warnig-text").innerText =
+										"OTP invalid or expired!";
+								}
+							});
+					} else {
+						popOTPEle.querySelector(".warnig-text").innerText =
+							"Please enter OTP";
+					}
+				};
+			}
+		})
+		.catch((err) => {
+
+			console.log(err);
+
+		});
+})();

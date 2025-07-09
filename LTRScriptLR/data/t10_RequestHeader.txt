@@ -1,0 +1,18 @@
+POST https://dev.bluealgo.com/smartformup/loadindex?opportunityId=0060o00001eSIJ0AAO&customerid=cust1005&accesstoken=uXCxZRKU-Mf2wiTg3_A8dPu957taLXxP HTTP/1.1
+sec-ch-ua: "Not A(Brand";v="99", "Google Chrome";v="121", "Chromium";v="121"
+sec-ch-ua-platform: "Windows"
+sec-ch-ua-mobile: ?0
+User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36
+Content-Type: text/plain;charset=UTF-8
+Accept: */*
+Origin: https://dev.bluealgo.com
+Sec-Fetch-Site: same-origin
+Sec-Fetch-Mode: cors
+Sec-Fetch-Dest: empty
+Referer: https://dev.bluealgo.com/smartformup/loadindex?opportunityId=0060o00001eSIJ0AAO&customerid=cust1005&accesstoken=uXCxZRKU-Mf2wiTg3_A8dPu957taLXxP
+Accept-Encoding: gzip, deflate
+Accept-Language: en-US,en;q=0.9
+Cookie: JSESSIONID=3D5E8FE80A4F34F9BC48B6E7488B8F91
+Host: dev.bluealgo.com
+Content-Length: 15
+

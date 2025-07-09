@@ -1,0 +1,22 @@
+HTTP/1.1 200 OK
+Connection: keep-alive
+Content-Length: 70325
+Access-Control-Allow-Origin: *
+Access-Control-Expose-Headers: *
+Timing-Allow-Origin: *
+Cache-Control: public, max-age=31536000, s-maxage=31536000, immutable
+Cross-Origin-Resource-Policy: cross-origin
+X-Content-Type-Options: nosniff
+Strict-Transport-Security: max-age=31536000; includeSubDomains; preload
+Content-Type: image/png
+X-JSD-Version: 18.2.1
+X-JSD-Version-Type: version
+ETag: W/"112b5-tFG020MXScxAzCpfJx+YB8oh8dM"
+Accept-Ranges: bytes
+Date: Thu, 15 Feb 2024 05:29:09 GMT
+Age: 6223364
+X-Served-By: cache-fra-eddf8230105-FRA, cache-del21731-DEL
+X-Cache: HIT, HIT
+Vary: Accept-Encoding
+alt-svc: h3=":443";ma=86400,h3-29=":443";ma=86400,h3-27=":443";ma=86400
+

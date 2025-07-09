@@ -1,0 +1,155 @@
+[
+    {
+        "actionName": "Action",
+        "steps": [
+            {
+                "stepId": "STEP1",
+                "stepName": "Url: loadindex",
+                "infFile": "t1.inf",
+                "time": 1708081640466
+            },
+            {
+                "stepId": "STEP2",
+                "stepName": "Submit Data: results",
+                "infFile": "t4.inf",
+                "time": 1708081644210
+            },
+            {
+                "stepId": "STEP3",
+                "stepName": "Submit Data: results_2",
+                "infFile": "t5.inf",
+                "time": 1708081644916
+            },
+            {
+                "stepId": "STEP4",
+                "stepName": "Submit Data: results_3",
+                "infFile": "t6.inf",
+                "time": 1708081645538
+            },
+            {
+                "stepId": "STEP5",
+                "stepName": "Custom Request: cheque",
+                "infFile": "t10.inf",
+                "time": 1708081658780
+            },
+            {
+                "stepId": "STEP6",
+                "stepName": "Custom Request: cheque_2",
+                "infFile": "t11.inf",
+                "time": 1708081659404
+            },
+            {
+                "stepId": "STEP7",
+                "stepName": "Submit Data: results_4",
+                "infFile": "t12.inf",
+                "time": 1708081661264
+            },
+            {
+                "stepId": "STEP8",
+                "stepName": "Submit Data: genericForm",
+                "infFile": "t15.inf",
+                "time": 1708081676599
+            }
+        ],
+        "transactions": [
+            {
+                "transactionName": "page1",
+                "rawStartTime": 1708081639550,
+                "rawEndTime": 1708081642193,
+                "thinkTime": 0.0,
+                "wastedTime": 0.26073169708251955
+            },
+            {
+                "transactionName": "2_Next",
+                "rawStartTime": 1708081642318,
+                "rawEndTime": 1708081643617,
+                "thinkTime": 0.0,
+                "wastedTime": 0.0060880184173583988
+            },
+            {
+                "transactionName": "3_UploadImage",
+                "rawStartTime": 1708081643730,
+                "rawEndTime": 1708081644217,
+                "thinkTime": 0.0,
+                "wastedTime": 0.004980802536010742
+            },
+            {
+                "transactionName": "4_uploadPAN",
+                "rawStartTime": 1708081644327,
+                "rawEndTime": 1708081644925,
+                "thinkTime": 0.0,
+                "wastedTime": 0.005566596984863281
+            },
+            {
+                "transactionName": "5_AadharUpload",
+                "rawStartTime": 1708081645570,
+                "rawEndTime": 1708081645649,
+                "thinkTime": 0.0,
+                "wastedTime": 0.0
+            },
+            {
+                "transactionName": "6_Next",
+                "rawStartTime": 1708081645760,
+                "rawEndTime": 1708081645822,
+                "thinkTime": 0.0,
+                "wastedTime": 0.0
+            },
+            {
+                "transactionName": "7_Next",
+                "rawStartTime": 1708081645931,
+                "rawEndTime": 1708081648489,
+                "thinkTime": 0.0,
+                "wastedTime": 0.015714406967163087
+            },
+            {
+                "transactionName": "8_Next",
+                "rawStartTime": 1708081648629,
+                "rawEndTime": 1708081650236,
+                "thinkTime": 0.0,
+                "wastedTime": 0.006287097930908203
+            },
+            {
+                "transactionName": "9_Next",
+                "rawStartTime": 1708081650362,
+                "rawEndTime": 1708081651785,
+                "thinkTime": 0.0,
+                "wastedTime": 0.006534576416015625
+            },
+            {
+                "transactionName": "10_uploadCheque",
+                "rawStartTime": 1708081651895,
+                "rawEndTime": 1708081658789,
+                "thinkTime": 0.0,
+                "wastedTime": 0.008390426635742188
+            },
+            {
+                "transactionName": "11_Next",
+                "rawStartTime": 1708081661292,
+                "rawEndTime": 1708081663766,
+                "thinkTime": 0.0,
+                "wastedTime": 0.034075260162353519
+            },
+            {
+                "transactionName": "12_Next",
+                "rawStartTime": 1708081663924,
+                "rawEndTime": 1708081664001,
+                "thinkTime": 0.0,
+                "wastedTime": 0.0
+            },
+            {
+                "transactionName": "13_Next",
+                "rawStartTime": 1708081664095,
+                "rawEndTime": 1708081666585,
+                "thinkTime": 0.0,
+                "wastedTime": 0.03415060043334961
+            },
+            {
+                "transactionName": "14_ESign_Submit",
+                "rawStartTime": 1708081666695,
+                "rawEndTime": 1708081676615,
+                "thinkTime": 0.0,
+                "wastedTime": 0.3025200366973877
+            }
+        ]
+    }
+]

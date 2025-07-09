@@ -1,0 +1,167 @@
+// var docVerification = "https://verify.bluealgo.com";
+var docVerification = "https://dev.verify.bluealgo.com/test/results";
+var nodejspdfapilink="https://dev.verify.bluealgo.com/process/getpdf";
+var extractPaymentSource = "https://dev.verify.bluealgo.com/test/test_new_version/results_new_version";
+
+
+
+var userFormURl =window.location.href;
+var genericAPI = "generic";
+
+var nameApi = "";
+var searchApi = "";
+var NameVerificatioAPI = "";
+
+var updateFormDataAPI =
+  "saveformbetween";
+var phoneOTPAPI = "previewpdf";
+var otpVerifyAPI = "otpSendVerify";
+
+var schema;
+var ignoreDoc = [];
+const imageUploadURL = 'https://booking.lntrealty.com//smartformup/uploadImage';
+const checkBoxTexts =  {
+  page_two: 'I/We, hereby declare that the KYC documents uploaded are genuine and authentic.',
+  page_four: 'I/We acknowledge that we have read the above information and agree to proceed accordingly.',
+  page_five: 'I/We, provide consent to proceed with the above mentioned channel partner for the booking.',
+  common: 'I/We, confirm that the information provided by me is accurate to the best of my/our knowledge.',
+  terms: 'I/We acknowledge that we have read the above terms & conditions and agree to proceed accordingly.',
+  page_nine: 'I/We, have read all the terms and conditions and by e-signing/submitting the document agree that all the information in the entirety of the document, as visible in the preview, is accurate.',
+  page_five_custom: 'I/We, provide consent to proceed with the above mentioned booking source for the booking.'
+}
+
+var pageInfo = [
+  "First Joint Applicant",
+  "Second Joint Applicant",
+  "Third Joint Applicant",
+  "Forth Joint Applicant",
+  "Fifth Joint Applicant",
+];
+
+var applicantNum = {
+  A1: "Applicant",
+  A2: "First Joint Applicant",
+  A3: "Second Joint Applicant",
+  A4: "Third Joint Applicant",
+  A5: "Forth Joint Applicant",
+  A6: "Fifth Joint Applicant",
+};
+
+var address = [
+  "HOUSE NUMBER",
+  "BUILDING NAME",
+  "PERMANENT LOCALITY",
+  "STREET",
+  "CITY",
+  "POSTAL CODE",
+  "STATE",
+  "COUNTRY",
+  "PERMANENT ADDRESS:",
+  "CORRESPONDENCE ADDRESS:",
+  "Same as Permanent Address",
+];
+
+const myfielddet = {
+  name: ["FIRST NAME", "LAST NAME"],
+  address: [
+    "POSTAL CODE",
+    "BUILDING NAME",
+    "PERMANENT LOCALITY",
+    "CITY",
+    "HOUSE NUMBER",
+    "STATE",
+    "STREET",
+    "COUNTRY",
+  ],
+  addhar_number: ["AADHAAR NUMBER"],
+  pan_number: ["PAN NUMBER"],
+};
+
+const myPreviewData = {
+  name: ["FIRST NAME", "LAST NAME"],
+  address: [
+    "HOUSE NUMBER",
+    "BUILDING NAME",
+    "PERMANENT LOCALITY",
+    "STREET",
+    "CITY",
+    "POSTAL CODE",
+    "STATE",
+    "COUNTRY",
+  ],
+  addhar_number: ["AADHAAR NUMBER"],
+  pan_number: ["PAN NUMBER"],
+  email: ["EMAIL", "ALTERNATE EMAIL ID"],
+  phone: ["MOBILE NUMBER", "ALTERNATE MOBILE"],
+};
+
+var appcttype = ["A1", "A2", "A3", "A4", "A5", "A6"];
+var esignData = ["FIRST NAME", "LAST NAME"];
+
+var signingOption = [
+  { value: "Now", label: "Now" },
+  { value: "Later", label: "Later" },
+];
+
+var ThresholdScore = 0; // must be in 0 to 100
+
+var bookingVerified = false;
+
+var mygtcndetails = "";
+
+var applicantNum = {
+  A1: "Primary Applicant",
+  A2: "First Joint Applicant",
+  A3: "Second Joint Applicant",
+  A4: "Third Joint Applicant",
+  A5: "Forth Joint Applicant",
+  A6: "Fifth Joint Applicant",
+};
+
+var preobj = {
+  kycdocument: [],
+  bookingsource: {
+    io_source: "BOOKING SOURCE",
+    io_name: "CHANNEL PARTNER NAME",
+    io_rera_no: "CP RERA NUMBER",
+    io_cp_mobile: "Channel Partner Mobile no",
+    
+  },
+  unitdetails: {
+    project_name: "Project name",
+    tower: "TOWER",
+    apartment_no: "UNIT NO",
+    carpet_area: "CARPET AREA (IN SQUARE FEET)",
+    type_of_apartment: "UNIT CONFIGURATION",
+    floor_no: "floor no",
+    parking_requested: "NUMBER OF PARKING",
+    ancillary_area: "OTHER USABLE AREA (IN SQUARE FEET)",
+   total_area: "TOTAL (Carpet + Other) AREA(IN SQUARE FEET)",
+    flat_cost: "AGREEMENT VALUE (IN INR)",
+    agval_words:'AGREEMENT VALUE IN WORDS (IN INR)'
+  },
+  bookingamount: {
+    booking_amount: "booking amount (in inr)",
+    bank: "BANK",
+    ifsc: "",
+    file: "file",
+    cheque_favoring_details: "CHEQUE FAVORING DETAILS",
+    rupees_in_words: "BOOKING AMOUNT IN WORDS (IN INR)",
+    date_of_cheque: "DATE",
+    cheque_no: "DD/PO/CHEQUE NO/RTGS/NEFT",
+  },
+  allaboutyou: {
+    date_of_birth: "DATE OF BIRTH",
+    mother_tongue: "MOTHER TONGUE",
+    marital_status: "MARITAL STATUS",
+    occuptions: "OCCUPATION",
+    name_of_firm: "COMPANY NAME",
+    my_desination: "DESIGNATION",
+    office_address: "OFFICE LOCATION",
+    ind_type:'INDUSTRY TYPE'
+  },
+};
+
+var page3tnc  = {
+  text: 'I/ We are authorising L&T Group Companies, or any third party appointed by L&T Realty, to use my personal data for updates, promotional communication and marketing survey without seeking any further consent for the same, even though | / We may be registered under DNC.'
+}

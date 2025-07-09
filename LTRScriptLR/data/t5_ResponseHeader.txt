@@ -1,0 +1,9 @@
+HTTP/1.1 200 OK
+Date: Fri, 02 Feb 2024 10:51:19 GMT
+Content-Type: application/json
+Content-Length: 205
+Connection: keep-alive
+Access-Control-Allow-Origin: https://dev.bluealgo.com
+Vary: Origin
+Strict-Transport-Security: max-age=15724800; includeSubDomains
+

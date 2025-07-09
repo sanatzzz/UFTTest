@@ -1,0 +1,2 @@
+"{\"applicant_details\":[{\"Applicant_Type\":\"Individual\",\"Applicant_Position\":\"A1\",\"cus"
+"tomerid\":\"cust1005\",\"id\":\"0060o00001eSIJ0AAO\"}]}"

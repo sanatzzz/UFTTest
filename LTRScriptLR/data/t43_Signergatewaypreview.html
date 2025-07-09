@@ -1,0 +1,2421 @@
+﻿var docType;
+var updCord, customselectPage;
+var Specifyval;
+var filePath = $("#hdnFileFullPath").val();
+var ValidateAllPlaceholders = $("#ValidateAllPlaceholders").val();
+var IsCustomized = $("#IsCustomized").val();
+var IndconfigDetailswithAllPage = new Array();
+var docType, IsMixedOrintation = false,
+    defaultLeftPxValue = 7, defaultRightPxValue = 833, defaultHeightPxValue = 60, defaultWidthPxValue = 120, defaultInHeightPxValue = 32, defaultInWidthPxValue = 34, defaultTopPxValue = 2, defaultBottomPxValue = 5,
+    PostionPageNo = 1, defaultPageLevelLeftPxValue = 10, defaultPageLevelTopPxValue = 10;
+var SelectedInitialsId = "", SelectedSignatureId = "", SignatureCoordinates = "", InitialsCoordinates = "";
+$(document).ready(function () {
+    // alert(IsCustomized);
+    $("#PLevelProfile").on("click", function () {
+        CreatePageLevelSignatory();
+    });
+    if (ValidateAllPlaceholders == "True") {
+        $("#Div-SignTitle").hide();
+    }
+    IsCustomized = $("#IsCustomized").val();
+    var IsInitialsCustomized = $("#IsInitialsCustomized").val();
+    ShowHidePleaseWait('Y');
+    $.ajax({
+        url: IMAGEGENERATIONURL,
+        type: "POST",
+        //async: false,
+        dataType: "json",
+        data: { "FilePath": filePath, __RequestVerificationToken: $('[name= "__RequestVerificationToken"]').val() },
+        success: function (responsedata) {
+            if (responsedata.status == 1) { 
+                if (responsedata.IsPortrait == "True") {
+                    docType = "Portrait";
+                    $("#DocumentMode").removeClass('singerLandscape').addClass('singerPortrait');
+                }
+                else {
+                    docType = "Landscape";
+                    $("#DocumentMode").removeClass('singerPortrait').addClass('singerLandscape');
+                }
+                sss = "";
+                for (var count = 0; count < responsedata.bytestring.length; count++) {
+                    sss += "<div class='documentContainment'><div class='documentVisual' id='page_" + (count + 1) + "'>";
+                    //sss += "<div class='documentContainment'><div class='documentVisual' id='page_1'>";
+                    sss += "<img class='draggingDisabled' width='" + responsedata.pageWidth + "' height='" + responsedata.pageHeight + "' src='" + "data:image/png;base64," + responsedata.bytestring[count].baseval + "' /></div></div>";
+                }
+                $("#hdnNoOfPages").val(responsedata.TotalPages);
+
+                $('#signerContainment').html(sss);
+
+                var screenDisplayWidth = $('#documentViewContent').width();
+                var docImageWidth = responsedata.pageWidth;
+                var docImageHeight = responsedata.pageHeight;
+                $('#signerContainment').css("width", docImageWidth);
+                var calScale = screenDisplayWidth / docImageWidth;
+                var DocoffTop = $("#documentViewContent").offset().top;
+                var WindowHeight = $(window).height();
+                var footerheight = $(".footer-section").height();
+                $("#documentViewContent").css('height', (WindowHeight - (DocoffTop + footerheight + 15)));
+                // style = 'width:" + responsedata.pageWidth + "px;'
+                $("#hdnTotalPages").val(responsedata.TotalPages);
+                if (IsCustomized == "True") {
+                    if (responsedata.TotalPages > 1) {
+                        $("#customsignerdiv").show();
+                    }
+                }
+                if (IsInitialsCustomized == "True") {
+                    if (responsedata.TotalPages > 1) {
+                        $("#customInitialdiv").show();
+                    }
+                }
+
+                $('.pageSelValue option').remove();
+                var p = parseInt(responsedata.TotalPages);
+                for (i = 1; i <= p; i++) {
+                    $(".pageSelValue").append("<option value=" + i + ">" + i + "</option>");
+                }
+                $('.pageSelValue1 option').remove();
+                var p = parseInt(responsedata.TotalPages);
+                for (i = 1; i <= p; i++) {
+                    $(".pageSelValue1").append("<option value=" + i + ">" + i + "</option>");
+                }
+                var images = $('.documentVisual img'), preloaded = 0, total = images.length;
+                images.on('load',function () {
+                    if (++preloaded === total) {
+
+
+                        prHeight = $('.documentVisual img').height();
+
+                        if (responsedata.pageWidth > screenDisplayWidth) {
+                            $('#singerContainer').css("transform", "scale(" + calScale + "," + calScale + ")").css("transform-origin", "0% 0%");
+                            $('#singerWrapper').css("height", docImageHeight); 
+                            $("#documentViewContent").css('height', (WindowHeight - (DocoffTop + footerheight + 100)));
+                        }
+                        var Anchor = $("#Anchor").val();
+                        if (Anchor !== undefined) {
+                            GetCustomCoordninatesByText($("#Searchtext").val(), $("#Anchor").val(), $("#InitialSearchtext").val(), $("#InitialsAnchor").val());
+                        }
+                        if (SignatureCoordinates != "") {
+                            CreatePageLevelSignatoryUsingSearchtext(SignatureCoordinates);
+                        }
+                        else {
+                            if (IsCustomized == "True") {
+                                UpdateCustomCoordinates(parseInt(responsedata.TotalPages), docType);
+                            }
+                            else {
+                                BindPlaceHolders(1, parseInt(responsedata.TotalPages), docType);
+                            }
+                        }
+                        if ($("#EnableInitials").val() == "True") {
+                            if (InitialsCoordinates != "") {
+                                //GetCustomCoordninatesByText($("#InitialSearchtext").val(), $("#InitialsAnchor").val(), 2);
+                                CreatePageLevelInitialsUsingSearchtext(InitialsCoordinates);
+                            }
+                            else {
+                                if (IsInitialsCustomized == "True") {
+                                    UpdateInCustomCoordinates(parseInt(responsedata.TotalPages), docType)
+                                } else {
+                                    BindInitialsPlaceHolders(1, parseInt(responsedata.TotalPages), docType);
+                                }
+                            }
+                        }
+                        if (ValidateAllPlaceholders == "True") {
+                            $("#showSignature").show();
+                            GetAllPlaceholdersID();
+                        }
+                        if (IndconfigDetailswithAllPage.length != 0) {
+
+                            LoadNextPlaceholder(IndconfigDetailswithAllPage);
+                        }
+                        ShowHidePleaseWait('N');
+                    }
+                }); 
+            }
+            else if (responsedata.status == 2) {
+                ShowHidePleaseWait('N');
+                $("#btnmsgcancel").hide();
+                $("#msgcontent").attr("class", "error");
+                $('#msgcontent').html("Invalid PDF format");
+                $(".alertWindow").css({ 'display': "block" });
+                $('#btnmsgok').attr('href', '/eMsecure/SignerGateway/SendErrorResponse?ErrorMessage=' + GenericError);
+            }
+            else if (responsedata.status == 7) {
+                ShowHidePleaseWait('N');
+                $("#div-document").slideUp();
+                $("#Div-nonpreview").slideDown();
+            }
+        },
+        error: function (e) {
+            ShowHidePleaseWait('N');
+            $("#btnmsgcancel").hide();
+            $("#msgcontent").attr("class", "error");
+            $('#msgcontent').html(GenericError);
+            $(".alertWindow").css({ 'display': "block" });
+            $('#btnmsgok').attr('href', '/eMsecure/SignerGateway/SendErrorResponse?ErrorMessage=' + GenericError);
+        }
+    });
+
+
+    $("#documentViewContent").scroll(function () {
+        var doccount = $('.documentVisual').length;
+        var t = parseInt($("#page_1").height()),
+            r, n, u, f, e;
+        for (t = t * (20 / 50), r = doccount, n = 0, j = 1; j <= r; j++)
+            if ($("#page_" + j).length > 0)
+                if (u = $("#page_" + j).offset().top + $("#documentViewContent").scrollTop() - t, f = $(this).scrollTop(), f >= u) n = j;
+                else break;
+        $("#ddlCustomPage").val(n);
+        if (ValidateAllPlaceholders == "True") {
+            GetAllPlaceholdersID();
+        }
+    });
+
+    $(".pagingStyle").on("click", function () {
+        var p = $('.documentVisual').length;
+        var f = $(this).attr("id"),
+            i = f.split("_")[1],
+            r, n, t;
+        if (i == "First" && (n = 1, $("#ddlCustomPage").val(n),
+            $("#documentViewContent").animate({
+                scrollTop: $("#page_1").offset().top - 120
+            }, "slow")),
+            i == "Prev" && (r = parseInt($("#ddlCustomPage").val()), n = r - 1, n < 1 && (n = 1), t = $("#page_" + n).offset().top + $("#documentViewContent").scrollTop() - 120,
+            $("#documentViewContent").animate({
+                    scrollTop: t
+                }, "slow"), $("#ddlCustomPage").val(n)),
+            i == "Next") {
+            var r = parseInt($("#ddlCustomPage").val()),
+                n = r + 1,
+                u = parseInt(p);
+            n > u && (n = u), t = $("#page_" + n).offset().top + $("#documentViewContent").scrollTop() - 120,
+                $("#documentViewContent").animate({
+                    scrollTop: t
+                }, "slow"), $("#ddlCustomPage").val(n)
+        }
+        i == "Last" && (n = p, $("#ddlCustomPage").val(n), t = $("#page_" + n).offset().top + $("#documentViewContent").scrollTop() - 120,
+            $("#documentViewContent").animate({
+                scrollTop: t
+            }, "slow"))
+        if (ValidateAllPlaceholders == "True") {
+            GetAllPlaceholdersID();
+        }
+    });
+
+    //$(".pageSelValue1").on("change", function () {
+    $('body').on('change', '.pageSelValue1', function () { 
+        var currentid = 1;
+        var r = $(this).attr("id"),
+            t = $(this).val(),
+            n = r.split("_")[1],
+            i = "#page_" + t;
+        $("#draggableDiv_" + n).appendTo($(i));
+        $("#draggableDiv_" + currentid + '_' + n).appendTo($(i));
+        f = $(i).offset().top + $("#documentViewContent").scrollTop() - 120;
+        $("#documentViewContent").animate({
+            scrollTop: f
+        }, "slow")
+        if (typeof (n) != "undefined") {
+            var arr = Array();
+            $('.signerNameRowPrep').each(function () {
+                arr.push($(this).attr('id').replace('listItem_', ''));
+            });
+        }
+        if (ValidateAllPlaceholders == "True") {
+            GetAllPlaceholdersID();
+        }
+    });
+
+
+    $("#btnPageNext").click(function () {
+        ShowHidePleaseWait('Y');
+        $.ajax({
+            url: PageByPageImageGenerationURL,
+            type: "POST",
+            dataType: "json",
+            data: { "FilePath": filePath, "Mode": "Next", __RequestVerificationToken: $('[name= "__RequestVerificationToken"]').val() },
+            success: function (responsedata) {
+                if (responsedata.status == 1) {
+                    if (responsedata.IsPortrait == "True") {
+                        docType = "Portrait";
+                        $("#DocumentMode").removeClass('singerLandscape').addClass('singerPortrait');
+                    }
+                    else {
+                        docType = "Landscape";
+                        $("#DocumentMode").removeClass('singerPortrait').addClass('singerLandscape');
+                    }
+                    sss = "";
+                    for (var count = 0; count < responsedata.bytestring.length; count++) {
+                        sss += "<div class='documentContainment'><div class='documentVisual' id='page_" + parseInt(responsedata.CurrentPage) + "'>";
+                        sss += "<img class='draggingDisabled' width='" + responsedata.pageWidth + "' height='" + responsedata.pageHeight + "' src='" + "data:image/png;base64," + responsedata.bytestring[count].baseval + "' /></div></div>";
+                    }
+                    $("#hdnNoOfPages").val(responsedata.TotalPages);
+                    $('#signerContainment').html(sss);
+                    var screenDisplayWidth = $('#documentViewContent').width();
+                    var docImageWidth = responsedata.pageWidth;
+                    var docImageHeight = responsedata.pageHeight;
+                    $('#signerContainment').css("width", docImageWidth);
+                    var calScale = screenDisplayWidth / docImageWidth;
+                    var DocoffTop = $("#documentViewContent").offset().top;
+                    var WindowHeight = $(window).height();
+                    var footerheight = $(".footer-section").height();
+                    $("#documentViewContent").css('height', (WindowHeight - (DocoffTop + footerheight + 15)));
+                    $(".pageSelValue").val(parseInt(responsedata.CurrentPage));
+                    
+                    var images = $('.documentVisual img'), preloaded = 0, total = images.length;
+                    images.on('load',function () {
+                        if (++preloaded === total) {
+
+                            prHeight = $('.documentVisual img').height();
+                            if (responsedata.pageWidth > screenDisplayWidth) {
+                                $('#singerContainer').css("transform", "scale(" + calScale + "," + calScale + ")").css("transform-origin", "0% 0%");
+                                $('#singerWrapper').css("height", docImageHeight);
+                            }
+
+                            BindPlaceHolders(parseInt(responsedata.CurrentPage), parseInt(responsedata.TotalPages), docType);
+                            if ($("#EnableInitials").val() == "True") { BindInitialsPlaceHolders(parseInt(responsedata.CurrentPage), parseInt(responsedata.TotalPages), docType); }
+                        }
+                    });
+                    ShowHidePleaseWait('N');
+                }
+                else if (responsedata.status == 0) {
+                    ShowHidePleaseWait('N');
+                }
+                else if (responsedata.status1 == 1) {
+                    ShowHidePleaseWait('N');
+                    $('#imgFollow').hide();
+                    $("#msgcontent").attr("class", "info");
+                    $('#msgcontent').html("Token counts are not available for your account.");
+                    $("#btnmsgcancel").hide();
+                    $(".alertWindow").css({ 'display': "block" });
+                    $('#btnmsgok').attr('href', '/eMsecure/SignerGateway/SendErrorResponse?ErrorMessage=' + responsedata.Message);
+                }
+            },
+            error: function (e) {
+                ShowHidePleaseWait('N');
+                $("#btnmsgcancel").hide();
+                $("#msgcontent").attr("class", "error");
+                $('#msgcontent').html(GenericError);
+                $(".alertWindow").css({ 'display': "block" });
+                $('#btnmsgok').attr('href', '/eMsecure/SignerGateway/SendErrorResponse?ErrorMessage=' + GenericError);
+            }
+        });
+    });
+
+    $("#btnPagePrevious").click(function () {
+        ShowHidePleaseWait('Y');
+        $.ajax({
+            url: PageByPageImageGenerationURL,
+            type: "POST",
+            dataType: "json",
+            data: { "FilePath": filePath, "Mode": "Previous", __RequestVerificationToken: $('[name= "__RequestVerificationToken"]').val() },
+            success: function (responsedata) {
+                if (responsedata.status == 1) {
+                    if (responsedata.IsPortrait == "True") {
+                        docType = "Portrait";
+                        $("#DocumentMode").removeClass('singerLandscape').addClass('singerPortrait');
+                    }
+                    else {
+                        docType = "Landscape";
+                        $("#DocumentMode").removeClass('singerPortrait').addClass('singerLandscape');
+                    }
+                    sss = "";
+                    for (var count = 0; count < responsedata.bytestring.length; count++) {
+                        sss += "<div class='documentContainment'><div class='documentVisual' id='page_" + parseInt(responsedata.CurrentPage) + "'>";
+                        sss += "<img class='draggingDisabled' width='" + responsedata.pageWidth + "' height='" + responsedata.pageHeight + "' src='" + "data:image/png;base64," + responsedata.bytestring[count].baseval + "' /></div></div>";
+                    }
+                    $("#hdnNoOfPages").val(responsedata.TotalPages);
+                    $('#signerContainment').html(sss);
+                    var screenDisplayWidth = $('#documentViewContent').width();
+                    var docImageWidth = responsedata.pageWidth;
+                    var docImageHeight = responsedata.pageHeight;
+                    $('#signerContainment').css("width", docImageWidth);
+                    var calScale = screenDisplayWidth / docImageWidth;
+                    var DocoffTop = $("#documentViewContent").offset().top;
+                    var WindowHeight = $(window).height();
+                    var footerheight = $(".footer-section").height();
+                    $("#documentViewContent").css('height', (WindowHeight - (DocoffTop + footerheight + 15)));
+                    $(".pageSelValue").val(parseInt(responsedata.CurrentPage));
+                    var images = $('.documentVisual img'), preloaded = 0, total = images.length;
+                    images.on('load',function () {
+                        if (++preloaded === total) {
+
+                            prHeight = $('.documentVisual img').height();
+
+                            if (responsedata.pageWidth > screenDisplayWidth) {
+                                $('#singerContainer').css("transform", "scale(" + calScale + "," + calScale + ")").css("transform-origin", "0% 0%");
+                                $('#singerWrapper').css("height", docImageHeight);
+                            }
+
+                            BindPlaceHolders(parseInt(responsedata.CurrentPage), parseInt(responsedata.TotalPages), docType);
+                            if ($("#EnableInitials").val() == "True") { BindInitialsPlaceHolders(parseInt(responsedata.CurrentPage), parseInt(responsedata.TotalPages), docType); }
+                        }
+                    });
+                    ShowHidePleaseWait('N');
+                }
+                else if (responsedata.status == 0) {
+                    ShowHidePleaseWait('N');
+                }
+                else if (responsedata.status1 == 1) {
+                    ShowHidePleaseWait('N');
+                    $('#imgFollow').hide();
+                    $("#msgcontent").attr("class", "info");
+                    $('#msgcontent').html("Token counts are not available for your account.");
+                    $("#btnmsgcancel").hide();
+                    $(".alertWindow").css({ 'display': "block" });
+                    $('#btnmsgok').attr('href', '/eMsecure/SignerGateway/SendErrorResponse?ErrorMessage=' + responsedata.Message);
+                }
+            },
+            error: function (e) {
+                ShowHidePleaseWait('N');
+                $("#btnmsgcancel").hide();
+                $("#msgcontent").attr("class", "error");
+                $('#msgcontent').html(GenericError);
+                $(".alertWindow").css({ 'display': "block" });
+                $('#btnmsgok').attr('href', '/eMsecure/SignerGateway/SendErrorResponse?ErrorMessage=' + GenericError);
+            }
+        });
+    });
+
+    $("#btnPageFirst").click(function () {
+        ShowHidePleaseWait('Y');
+        $.ajax({
+            url: PageByPageImageGenerationURL,
+            type: "POST",
+            dataType: "json",
+            data: { "FilePath": filePath, "Mode": "First", __RequestVerificationToken: $('[name= "__RequestVerificationToken"]').val() },
+            success: function (responsedata) {
+                if (responsedata.status == 1) {
+                    if (responsedata.IsPortrait == "True") {
+                        docType = "Portrait";
+                        $("#DocumentMode").removeClass('singerLandscape').addClass('singerPortrait');
+                    }
+                    else {
+                        docType = "Landscape";
+                        $("#DocumentMode").removeClass('singerPortrait').addClass('singerLandscape');
+                    }
+                    sss = "";
+                    for (var count = 0; count < responsedata.bytestring.length; count++) {
+                        sss += "<div class='documentContainment'><div class='documentVisual' id='page_" + parseInt(responsedata.CurrentPage) + "'>";
+                        sss += "<img class='draggingDisabled' width='" + responsedata.pageWidth + "' height='" + responsedata.pageHeight + "' src='" + "data:image/png;base64," + responsedata.bytestring[count].baseval + "' /></div></div>";
+                    }
+                    $("#hdnNoOfPages").val(responsedata.TotalPages);
+                    $('#signerContainment').html(sss);
+                    var screenDisplayWidth = $('#documentViewContent').width();
+                    var docImageWidth = responsedata.pageWidth;
+                    var docImageHeight = responsedata.pageHeight;
+                    $('#signerContainment').css("width", docImageWidth);
+                    var calScale = screenDisplayWidth / docImageWidth;
+                    var DocoffTop = $("#documentViewContent").offset().top;
+                    var WindowHeight = $(window).height();
+                    var footerheight = $(".footer-section").height();
+                    $("#documentViewContent").css('height', (WindowHeight - (DocoffTop + footerheight + 15)));
+                    $(".pageSelValue").val(parseInt(responsedata.CurrentPage));
+                    var images = $('.documentVisual img'), preloaded = 0, total = images.length;
+                    images.on('load',function () {
+                        if (++preloaded === total) {
+
+                            prHeight = $('.documentVisual img').height();
+
+                            if (responsedata.pageWidth > screenDisplayWidth) {
+                                $('#singerContainer').css("transform", "scale(" + calScale + "," + calScale + ")").css("transform-origin", "0% 0%");
+                                $('#singerWrapper').css("height", docImageHeight);
+                            }
+
+                            BindPlaceHolders(parseInt(responsedata.CurrentPage), parseInt(responsedata.TotalPages), docType);
+                            if ($("#EnableInitials").val() == "True") { BindInitialsPlaceHolders(parseInt(responsedata.CurrentPage), parseInt(responsedata.TotalPages), docType); }
+
+                        }
+                    });
+                    ShowHidePleaseWait('N');
+                }
+                else if (responsedata.status == 0) {
+                    ShowHidePleaseWait('N');
+                }
+                else if (responsedata.status1 == 1) {
+                    ShowHidePleaseWait('N');
+                    $('#imgFollow').hide();
+                    $("#msgcontent").attr("class", "info");
+                    $('#msgcontent').html("Token counts are not available for your account.");
+                    $("#btnmsgcancel").hide();
+                    $(".alertWindow").css({ 'display': "block" });
+                    $('#btnmsgok').attr('href', '/eMsecure/SignerGateway/SendErrorResponse?ErrorMessage=' + responsedata.Message);
+                }
+            },
+            error: function (e) {
+                ShowHidePleaseWait('N');
+                $("#btnmsgcancel").hide();
+                $("#msgcontent").attr("class", "error");
+                $('#msgcontent').html(GenericError);
+                $(".alertWindow").css({ 'display': "block" });
+                $('#btnmsgok').attr('href', '/eMsecure/SignerGateway/SendErrorResponse?ErrorMessage=' + GenericError);
+            }
+        });
+    });
+
+    $("#btnPageLast").click(function () {
+        ShowHidePleaseWait('Y');
+        $.ajax({
+            url: PageByPageImageGenerationURL,
+            type: "POST",
+            dataType: "json",
+            data: { "FilePath": filePath, "Mode": "Last", __RequestVerificationToken: $('[name= "__RequestVerificationToken"]').val() },
+            success: function (responsedata) {
+                if (responsedata.status == 1) {
+                    if (responsedata.IsPortrait == "True") {
+                        docType = "Portrait";
+                        $("#DocumentMode").removeClass('singerLandscape').addClass('singerPortrait');
+                    }
+                    else {
+                        docType = "Landscape";
+                        $("#DocumentMode").removeClass('singerPortrait').addClass('singerLandscape');
+                    }
+                    sss = "";
+                    for (var count = 0; count < responsedata.bytestring.length; count++) {
+                        sss += "<div class='documentContainment'><div class='documentVisual' id='page_" + parseInt(responsedata.CurrentPage) + "'>";
+                        sss += "<img class='draggingDisabled' width='" + responsedata.pageWidth + "' height='" + responsedata.pageHeight + "' src='" + "data:image/png;base64," + responsedata.bytestring[count].baseval + "' /></div></div>";
+                    }
+                    $("#hdnNoOfPages").val(responsedata.TotalPages);
+                    $('#signerContainment').html(sss);
+                    var screenDisplayWidth = $('#documentViewContent').width();
+                    var docImageWidth = responsedata.pageWidth;
+                    var docImageHeight = responsedata.pageHeight;
+                    $('#signerContainment').css("width", docImageWidth);
+                    var calScale = screenDisplayWidth / docImageWidth;
+                    var DocoffTop = $("#documentViewContent").offset().top;
+                    var WindowHeight = $(window).height();
+                    var footerheight = $(".footer-section").height();
+                    $("#documentViewContent").css('height', (WindowHeight - (DocoffTop + footerheight + 15)));
+                    $(".pageSelValue").val(parseInt(responsedata.CurrentPage));
+                    var images = $('.documentVisual img'), preloaded = 0, total = images.length;
+                    images.on('load',function () {
+                        if (++preloaded === total) {
+
+                            prHeight = $('.documentVisual img').height();
+
+
+                            if (responsedata.pageWidth > screenDisplayWidth) {
+                                $('#singerContainer').css("transform", "scale(" + calScale + "," + calScale + ")").css("transform-origin", "0% 0%");
+                                $('#singerWrapper').css("height", docImageHeight);
+                            }
+
+                            BindPlaceHolders(parseInt(responsedata.CurrentPage), parseInt(responsedata.TotalPages), docType);
+                            if ($("#EnableInitials").val() == "True") { BindInitialsPlaceHolders(parseInt(responsedata.CurrentPage), parseInt(responsedata.TotalPages), docType); }
+                        }
+                    });
+                    ShowHidePleaseWait('N');
+                }
+                else if (responsedata.status == 0) {
+                    ShowHidePleaseWait('N');
+                }
+                else if (responsedata.status1 == 1) {
+                    ShowHidePleaseWait('N');
+                    $('#imgFollow').hide();
+                    $("#msgcontent").attr("class", "info");
+                    $('#msgcontent').html("Token counts are not available for your account.");
+                    $("#btnmsgcancel").hide();
+                    $(".alertWindow").css({ 'display': "block" });
+                    $('#btnmsgok').attr('href', '/eMsecure/SignerGateway/SendErrorResponse?ErrorMessage=' + responsedata.Message);
+                }
+            },
+            error: function (e) {
+                ShowHidePleaseWait('N');
+                $("#btnmsgcancel").hide();
+                $("#msgcontent").attr("class", "error");
+                $('#msgcontent').html(GenericError);
+                $(".alertWindow").css({ 'display': "block" });
+                $('#btnmsgok').attr('href', '/eMsecure/SignerGateway/SendErrorResponse?ErrorMessage=' + GenericError);
+            }
+        });
+    });
+
+    $('body').on('change', '#ddlPage', function () {
+        if (ValidateAllPlaceholders == "False") {
+            var id = $("#ddlPage").val();
+            ShowHidePleaseWait('Y');
+            $.ajax({
+                url: GetImageDetailsBasedonPageNumberURL,
+                type: "POST",
+                dataType: "json",
+                data: { "FilePath": filePath, "PageNumber": id, __RequestVerificationToken: $('[name= "__RequestVerificationToken"]').val() },
+                success: function (responsedata) {
+
+                    if (responsedata.status == 1) {
+                        if (responsedata.IsPortrait == "True") {
+                            docType = "Portrait";
+                            $("#DocumentMode").removeClass('singerLandscape').addClass('singerPortrait');
+                        }
+                        else {
+                            docType = "Landscape";
+                            $("#DocumentMode").removeClass('singerPortrait').addClass('singerLandscape');
+                        }
+                        sss = "";
+                        for (var count = 0; count < responsedata.bytestring.length; count++) {
+                            sss += "<div class='documentContainment'><div class='documentVisual' id='page_" + parseInt(responsedata.CurrentPage) + "'>";
+                            sss += "<img class='draggingDisabled' width='" + responsedata.pageWidth + "' height='" + responsedata.pageHeight + "' src='" + "data:image/png;base64," + responsedata.bytestring[count].baseval + "' /></div></div>";
+                        }
+                        $("#hdnNoOfPages").val(responsedata.TotalPages);
+                        $('#signerContainment').html(sss);
+                        var screenDisplayWidth = $('#documentViewContent').width();
+                        var docImageWidth = responsedata.pageWidth;
+                        var docImageHeight = responsedata.pageHeight;
+                        $('#signerContainment').css("width", docImageWidth);
+                        var calScale = screenDisplayWidth / docImageWidth;
+                        var DocoffTop = $("#documentViewContent").offset().top;
+                        var WindowHeight = $(window).height();
+                        var footerheight = $(".footer-section").height();
+                        $("#documentViewContent").css('height', (WindowHeight - (DocoffTop + footerheight + 15)));
+                        $(".pageSelValue").val(parseInt(id));
+                        var images = $('.documentVisual img'), preloaded = 0, total = images.length;
+                        images.on('load',function () {
+                            if (++preloaded === total) {
+
+                                prHeight = $('.documentVisual img').height();
+
+
+                                if (responsedata.pageWidth > screenDisplayWidth) {
+                                    $('#singerContainer').css("transform", "scale(" + calScale + "," + calScale + ")").css("transform-origin", "0% 0%");
+                                    $('#singerWrapper').css("height", docImageHeight);
+                                }
+
+                                BindPlaceHolders(parseInt(responsedata.CurrentPage), parseInt(responsedata.TotalPages), docType);
+                                if ($("#EnableInitials").val() == "True") { BindInitialsPlaceHolders(parseInt(responsedata.CurrentPage), parseInt(responsedata.TotalPages), docType); }
+                            }
+
+                        });
+                        ShowHidePleaseWait('N');
+                    }
+                    else if (responsedata.status == 0) {
+                        ShowHidePleaseWait('N');
+                    }
+                    else if (responsedata.status1 == 1) {
+                        ShowHidePleaseWait('N');
+                        $('#imgFollow').hide();
+                        $("#msgcontent").attr("class", "info");
+                        $('#msgcontent').html("Token counts are not available for your account.");
+                        $("#btnmsgcancel").hide();
+                        $(".alertWindow").css({ 'display': "block" });
+                        $('#btnmsgok').attr('href', '/eMsecure/SignerGateway/SendErrorResponse?ErrorMessage=' + responsedata.Message);
+                    }
+                },
+                error: function (e) {
+                    ShowHidePleaseWait('N');
+                    $("#btnmsgcancel").hide();
+                    $("#msgcontent").attr("class", "error");
+                    $('#msgcontent').html(GenericError);
+                    $(".alertWindow").css({ 'display': "block" });
+                    $('#btnmsgok').attr('href', '/eMsecure/SignerGateway/SendErrorResponse?ErrorMessage=' + GenericError);
+                }
+            });
+        }
+    });
+
+    function BindPlaceHolders(pageNumber, PageCount, docType) {
+        var SelectedPage, SignPosition, coordinates;
+        if (customselectPage == "true") {
+            SelectedPage = $('#ddlPageSelection option:selected').val();
+            SignPosition = $('#ddlSignaturePosition option:selected').val()
+        }
+        else {
+            SelectedPage = $("#hdnSelectPage").val();
+            SignPosition = $("#hdnSigPosition").val();
+            coordinates = $("#hdnCustomizecoordinates").val().split(',');
+        }
+
+        //var FinalTop;
+        if (SelectedPage == "SPECIFY") {
+            var PageNumbers = $("#hdnPageNumber").val().split(',');
+            var configdetails, coordinates, Left, Width, Height, Top, FinalTop;
+            if (updCord == "true") {
+                configdetails = $("#hdnCoordinates").val();;
+                coordinates = configdetails.split(',');
+                Left = coordinates[0], Width = coordinates[2], Height = coordinates[3];
+                Top = $('.documentVisual img').height() - coordinates[1];
+                //FinalTop = $('.documentVisual img').height() - Top;
+            }
+            else {
+                configdetails = GetCoordinates($("#hdnSigPosition").val(), docType);
+                coordinates = configdetails.split(',');
+                Left = coordinates[0], Width = coordinates[2], Height = coordinates[3];
+                Top = $('.documentVisual img').height() - coordinates[1];
+                FinalTop = Top;//$('.documentVisual img').height() - Top;
+            }
+            if (IsCustomized == "True") {
+                for (j = 0; j < PageNumbers.length; j++) {
+                    if (PageNumbers[j] == pageNumber) {
+
+                        if (coordinates.length > 1) {
+                            var Left = coordinates[0], Top = coordinates[1], Width = coordinates[2], Height = coordinates[3];
+                        }
+                        if (SignPosition == "Customize") {
+                            FinalTop = $('.documentVisual img').height() - Top;
+                            $('#page_' + pageNumber).append('<div  id="draggableDiv_' + 1 + '" class="dragDiv Signatory' + 1 + '" style="left:' + Left + 'px; top:' + FinalTop + 'px; height:60px; width:120px;"><span class="signImg"></span><span class="signerName" style="display:none;"></span></div>');
+                            $('#draggableDiv_' + 1).draggable({ containment: "#page_" + pageNumber, scroll: false, stop: function () { UpdateCoordinates(this); } });
+                            $('#draggableDiv_' + 1).resizable({ containment: "#page_" + pageNumber, maxHeight: 250, maxWidth: 350, minHeight: 60, minWidth: 120, stop: function () { UpdateCoordinates(this); } });
+                            $('#draggableDiv_' + 1).draggable({ disabled: false }).resizable({ disabled: false });
+
+
+                        }
+                        else {
+                            //var config = GetCoordinates(SignPosition, docType);
+                            //var coordinates = config.split(',');
+                            Top = $('.documentVisual img').height() - coordinates[1];
+                            $('#page_' + pageNumber).append('<div  id="draggableDiv_' + 1 + '" class="dragDiv Signatory' + 1 + '" style="left:' + Left + 'px; top:' + Top + 'px; height:60px; width:120px;"><span class="signImg"></span><span class="signerName" style="display:none;"></span></div>');
+                            $('#draggableDiv_' + 1).draggable({ containment: "#page_" + pageNumber, scroll: false, stop: function () { UpdateCoordinates(this); } });
+                            $('#draggableDiv_' + 1).resizable({ containment: "#page_" + pageNumber, maxHeight: 250, maxWidth: 350, minHeight: 60, minWidth: 120, stop: function () { UpdateCoordinates(this); } });
+                            $('#draggableDiv_' + 1).draggable({ disabled: false }).resizable({ disabled: false });
+                        }
+                    }
+                }
+            }
+            else {
+                for (j = 0; j < PageNumbers.length; j++) {
+                    if (PageNumbers[j] == pageNumber || IsInitialsCustomized == "True" || ValidateAllPlaceholders == "True") {
+                        var coordinates = $("#hdnCustomizecoordinates").val().split(',');
+                        var Left = coordinates[0], Top = coordinates[1], Width = coordinates[2], Height = coordinates[3];
+                        if (SignPosition == "Customize") {
+                            var FinalTop = $('.documentVisual img').height() - Top;
+                            var height = (Number(Top) - Number(Height)) - 2;
+                            var width = (Number(Width) - Number(Left)) - 2;
+                            for (i = 0; i < pageNumber; i++) {
+                                $('#page_' + pageNumber).append('<div  id="draggableDiv_' + (j + 1) + '_' + PageNumbers[j] + '" class="dragDiv Signatory' + 1 + '" style="left:' + Left + 'px; top:' + FinalTop + 'px; height:' + height + 'px; width:' + width + 'px;"><span class="signImg"></span><span class="signerName" style="display:none;"></span></div>');
+                                //if (window.Boolean(ValidateAllPlaceholders)) {
+                                //    var config = { PageNo: PageNumbers[j], Topvalue: FinalTop, DivId: "draggableDiv_" + (j + 1) + "_" + PageNumbers[j] + "~" + PageNumbers[j] };
+                                //    IndconfigDetailswithAllPage.push(config);
+                                //}
+                            }
+                        }
+                        else {
+                            var config = GetCoordinates(SignPosition, docType);
+                            var coordinates = config.split(',');
+                            var Top = $('.documentVisual img').height() - coordinates[1];
+                            $('#page_' + PageNumbers[j]).append('<div  id="draggableDiv_' + (j + 1) + '_' + PageNumbers[j] + '" class="dragDiv Signatory' + 1 + '" style="left:' + coordinates[0] + 'px; top:' + Top + 'px; height:60px; width:120px;"><span class="signImg"></span><span class="signerName" style="display:none;"></span></div>');
+                            //if (window.Boolean(ValidateAllPlaceholders)) {
+                            //    var config = { PageNo: PageNumbers[j], Topvalue: Top, DivId: "draggableDiv_" + (j + 1) + "_" + PageNumbers[j] + "~" + PageNumbers[j] };
+                            //    IndconfigDetailswithAllPage.push(config);
+                            //}
+                        }
+                    }
+                }
+            }
+
+
+        }
+        else if (SelectedPage == "PAGE LEVEL") {
+
+            var configdetails, coordinates, Left, Width, Height, Top, FinalTop;
+            //if (updCord == "true") {
+            //    configdetails = $("#hdnCoordinates").val();;
+            //    coordinates = configdetails.split(',');
+            //    Left = coordinates[0], Width = coordinates[2], Height = coordinates[3];
+            //    Top = $('.documentVisual img').height() - coordinates[1];
+            //    //FinalTop = $('.documentVisual img').height() - Top;
+            //}
+            //else {
+            //    configdetails = $("#hdnPagelevelCordinates").val().split(';');
+            //    coordinates = configdetails.split(',');
+            //    Left = coordinates[0], Width = coordinates[2], Height = coordinates[3];
+            //    Top = $('.documentVisual img').height() - coordinates[1];
+            //    FinalTop = Top;//$('.documentVisual img').height() - Top;
+            //}
+
+            var Configdetails = $("#hdnPagelevelCordinates").val().split(';');
+            var PageNumbers = new Array();
+            //i = 0; i < PageNumberDetails.length - 1; i++    id="draggableDiv_' + 1 + '_' + (i + 1) + '" class=
+            for (i = 0; i < Configdetails.length; i++) {
+                var coordinates = Configdetails[i].split(',');
+                var Left = coordinates[1], Top = coordinates[2], Width = coordinates[3], Height = coordinates[4];
+                if (IsCustomized == "True") {
+                    if (coordinates[0] == pageNumber) {
+                        var FinalTop = $('.documentVisual img').height() - Top;
+                        var height = (Number(Top) - Number(Height)) - 2;
+                        var width = (Number(Width) - Number(Left)) - 2;
+                        $('#page_' + pageNumber).append('<div id="draggableDiv_' + 1 + '_' + pageNumber + '" class="dragDiv Signatory' + pageNumber + '" style="left:' + Left + 'px; top:' + FinalTop + 'px; height:' + height + 'px; width:' + width + 'px;"><span class="signImg"></span><span class="signerName" style="display:none;"></span><a href="javascript:void(0);" id="DeleteSigners_' + pageNumber + '" class="delSignerPL" title="Delete"><span></span></a></div>');
+                        // $('#page_' + pageNumber).append('<div id="draggableDiv" class="dragDiv Signatory' + 1 + '" style="left:' + Left + 'px; top:' + Top + 'px; height:60px; width:120px;"><span class="signImg"></span><span class="signerName" style="display:none;"></span></div>');                      
+                        $('#draggableDiv_' + 1 + '_' + pageNumber + '').draggable({ containment: "#page_" + pageNumber, scroll: false, stop: function () { UpdateCoordinates(this); } });
+                        $('#draggableDiv_' + 1 + '_' + pageNumber + '').resizable({ containment: "#page_" + pageNumber, maxHeight: 250, maxWidth: 350, minHeight: 60, minWidth: 120, stop: function () { UpdateCoordinates(this); } });
+                        $('#draggableDiv_' + 1 + '_' + pageNumber + '').draggable({ disabled: false }).resizable({ disabled: false });
+
+                    }
+                    //$('#draggableDiv_' + 1 + '_' + (i + 1) + '').draggable({ disabled: false }).resizable({ disabled: false });
+                }
+                else {
+                    if (coordinates[0] == pageNumber || IsInitialsCustomized == "True" || ValidateAllPlaceholders == "True") {
+                        var FinalTop = $('.documentVisual img').height() - Top;
+                        var height = (Number(Top) - Number(Height)) - 2;
+                        var width = (Number(Width) - Number(Left)) - 2;
+                        $('#page_' + coordinates[0]).append('<div id="draggableDiv_' + (i + 1) + '_' + coordinates[0] + '" class="dragDiv Signatory1" style="left:' + Left + 'px; top:' + FinalTop + 'px; height:' + height + 'px; width:' + width + 'px;"><span class="signImg"></span><span class="signerName" style="display:none;"></span><a href="javascript:void(0);" id="DeleteSigners_' + pageNumber + '" class="delSignerPL" title="Delete"><span></span></a></div>');
+                        //if (window.Boolean(ValidateAllPlaceholders)) {
+                        //    var config = { PageNo: coordinates[0], Topvalue: FinalTop, DivId: "draggableDiv_" + (i + 1) + "_" + coordinates[0] + "~" + coordinates[0] };
+                        //    IndconfigDetailswithAllPage.push(config);
+                        //}
+                    }
+                }
+            }
+        }
+        else if (SelectedPage == "FIRST") {
+            var configdetails, coordinates, Left, Width, Height, Top;
+            if (updCord == "true") {
+                configdetails = $("#hdnCoordinates").val();
+                coordinates = configdetails.split(',');
+                Left = coordinates[0], Width = coordinates[2], Height = coordinates[3];
+                Top = $('.documentVisual img').height() - coordinates[1];
+            }
+            else {
+                configdetails = GetCoordinates($("#hdnSigPosition").val(), docType);
+                coordinates = configdetails.split(',');
+                Left = coordinates[0], Width = coordinates[2], Height = coordinates[3];
+                Top = $('.documentVisual img').height() - coordinates[1];
+            }
+            //var configdetails = GetCoordinates($("#hdnSigPosition").val(), docType);
+            //var coordinates = configdetails.split(',');
+            //var Left = coordinates[0], Width = coordinates[2], Height = coordinates[3];
+            //var Top = $('.documentVisual img').height() - coordinates[1];
+            if (IsCustomized == "True") {
+                if (pageNumber == 1) {
+                    //$('#page_' + pageNumber).append('<div  class="dragDiv" style="left:' + Left + 'px; top:' + Top + 'px; height:60px; width:120px;"><span class="signImg"></span><span class="signerName" style="display:none;"></span></div>');
+                    $('#page_' + pageNumber).append('<div id="draggableDiv_' + 1 + '_' + 1 + '" class="dragDiv Signatory' + 1 + '" style="left:' + Left + 'px; top:' + Top + 'px; height:60px; width:120px;"><span class="signImg"></span><span class="signerName" style="display:none;"></span></div>');
+
+                    $('#draggableDiv_' + 1 + '_1').draggable({ containment: "#page_" + pageNumber, scroll: false, stop: function () { UpdateCoordinates(this); } });
+                    $('#draggableDiv_' + 1 + '_1').resizable({ containment: "#page_" + pageNumber, maxHeight: 250, maxWidth: 350, minHeight: 60, minWidth: 120, stop: function () { UpdateCoordinates(this); } });
+                    $('#draggableDiv_' + 1 + '_1').draggable({ disabled: false }).resizable({ disabled: false });
+
+                }
+                //$('#draggableDiv').draggable({ disabled: false }).resizable({ disabled: false });
+            }
+            else {
+                if (pageNumber == 1 || IsInitialsCustomized == "True" || ValidateAllPlaceholders == "True") {
+                    //$('#page_' + pageNumber).append('<div  class="dragDiv" style="left:' + Left + 'px; top:' + Top + 'px; height:60px; width:120px;"><span class="signImg"></span><span class="signerName" style="display:none;"></span></div>');
+                    $('#page_' + pageNumber).append('<div id="draggableDiv_' + 1 + '" class="dragDiv Signatory' + 1 + '" style="left:' + Left + 'px; top:' + Top + 'px; height:60px; width:120px;"><span class="signImg"></span><span class="signerName" style="display:none;"></span></div>');
+                    //if (window.Boolean(ValidateAllPlaceholders)) {
+                    //    var config = { PageNo: pageNumber, Topvalue: Top, DivId: "draggableDiv_" + 1 + "_" + pageNumber + "~" + pageNumber };
+                    //    IndconfigDetailswithAllPage.push(config);
+                    //}
+                }
+            }
+        }
+        else if (SelectedPage == "LAST") {
+            var configdetails, coordinates, Left, Width, Height, Top;
+            if (updCord == "true") {
+                configdetails = $("#hdnCoordinates").val();;
+                coordinates = configdetails.split(',');
+                Left = coordinates[0], Width = coordinates[2], Height = coordinates[3];
+                Top = $('.documentVisual img').height() - coordinates[1];
+            }
+            else {
+                configdetails = GetCoordinates($("#hdnSigPosition").val(), docType);
+                coordinates = configdetails.split(',');
+                Left = coordinates[0], Width = coordinates[2], Height = coordinates[3];
+                Top = $('.documentVisual img').height() - coordinates[1];
+            }
+            //var configdetails = GetCoordinates($("#hdnSigPosition").val(), docType);
+            //var coordinates = configdetails.split(',');
+            //var Left = coordinates[0], Width = coordinates[2], Height = coordinates[3];
+            //var Top = $('.documentVisual img').height() - coordinates[1];
+            if (IsCustomized == "True") {
+                if (pageNumber == PageCount) {
+                    $('#page_' + pageNumber).append('<div id="draggableDiv_' + 1 + '" class="dragDiv Signatory' + 1 + '" style="left:' + Left + 'px; top:' + Top + 'px; height:60px; width:120px;"><span class="signImg"></span><span class="signerName" style="display:none;"></span></div>');
+                    $('#draggableDiv_' + 1).draggable({ disabled: false }).resizable({ disabled: false });
+                    $('#draggableDiv_' + 1).draggable({ containment: "#page_" + pageNumber, scroll: false, stop: function () { UpdateCoordinates(this); } });
+                    $('#draggableDiv_' + 1).resizable({ containment: "#page_" + pageNumber, maxHeight: 250, maxWidth: 350, minHeight: 60, minWidth: 120, stop: function () { UpdateCoordinates(this); } });
+                }
+                //$('#draggableDiv').draggable({ disabled: false }).resizable({ disabled: false });
+            }
+            else {
+
+                if (pageNumber == PageCount|| IsInitialsCustomized == "True" || ValidateAllPlaceholders == "True") {
+                    //if (IsInitialsCustomized == "True" || ValidateAllPlaceholders == "True") {
+                        $('#page_' + PageCount).append('<div id="draggableDiv_' + 1 + '_' + PageCount + '" class="dragDiv Signatory' + 1 + '" style="left:' + Left + 'px; top:' + Top + 'px; height:60px; width:120px;"><span class="signImg"></span><span class="signerName" style="display:none;"></span></div>');
+                        //if (window.Boolean(ValidateAllPlaceholders)) {
+                        //    var config = { PageNo: pageNumber, Topvalue: Top, DivId: "draggableDiv_" + 1 + "_" + pageNumber + "~" + pageNumber };
+                        //    IndconfigDetailswithAllPage.push(config);
+                        //}
+                    //}
+                }
+                else {
+                    if (ValidateAllPlaceholders == "False") {
+                        $('#page_' + PageCount).append('<div id="draggableDiv_' + 1 + '_' + PageCount + '" class="dragDiv Signatory' + 1 + '" style="left:' + Left + 'px; top:' + Top + 'px; height:60px; width:120px;"><span class="signImg"></span><span class="signerName" style="display:none;"></span></div>');
+                    }
+                }
+            }
+        }
+        else if (SelectedPage == "ALL") {
+            var configdetails, coordinates, Left, Width, Height, Top;
+            if (updCord == "true") {
+                configdetails = $("#hdnCoordinates").val();;
+                coordinates = configdetails.split(',');
+                Left = coordinates[0], Width = coordinates[2], Height = coordinates[3];
+                Top = $('.documentVisual img').height() - coordinates[1];
+            }
+            else {
+                configdetails = GetCoordinates($("#hdnSigPosition").val(), docType);
+                coordinates = configdetails.split(',');
+                Left = coordinates[0], Width = coordinates[2], Height = coordinates[3];
+                Top = $('.documentVisual img').height() - coordinates[1];
+            }
+            //var configdetails = GetCoordinates($("#hdnSigPosition").val(), docType);
+            //var coordinates = configdetails.split(',');
+            //var Left = coordinates[0], Width = coordinates[2], Height = coordinates[3];
+            //var Top = $('.documentVisual img').height() - coordinates[1];
+
+            if (IsCustomized == "True") {
+
+                $('#page_' + pageNumber).append('<div id="draggableDiv_' + 1 + '" class="dragDiv Signatory' + 1 + '" style="left:' + Left + 'px; top:' + Top + 'px; height:60px; width:120px;"><span class="signImg"></span><span class="signerName" style="display:none;"></span></div>');
+                $('#draggableDiv_' + 1).draggable({ containment: "#page_" + pageNumber, scroll: false, stop: function () { UpdateCoordinates(this); } });
+                $('#draggableDiv_' + 1).resizable({ containment: "#page_" + pageNumber, maxHeight: 250, maxWidth: 350, minHeight: 60, minWidth: 120, stop: function () { UpdateCoordinates(this); } });
+
+            }
+            else {
+                for (i = 0; i < PageCount; i++) {
+                    if (pageNumber == (i + 1) || IsInitialsCustomized == "True" || ValidateAllPlaceholders == "True") {
+                        $('#page_' + (i + 1)).append('<div  id="draggableDiv_' + (i + 1) + '_' + (i + 1) + '" class="dragDiv Signatory' + 1 + '" style="left:' + Left + 'px; top:' + Top + 'px; height:60px; width:120px;"><span class="signImg"></span><span class="signerName" style="display:none;"></span></div>');
+                        //if (window.Boolean(ValidateAllPlaceholders)) {
+                        //    var config = { PageNo: (i + 1), Topvalue: Top, DivId: "draggableDiv_" + (i + 1) + "_" + (i + 1) + "~" + (i + 1) };
+                        //    IndconfigDetailswithAllPage.push(config);
+                        //}
+                    }
+                }
+            }
+        }
+        else if (SelectedPage == "EVEN") {
+            var PDetails = new Array();
+            for (i = 0; i < PageCount; i++) {
+                if (((i + 1) % 2) == 0) {
+                    PDetails.push((i + 1));
+                }
+            }
+            var configdetails, coordinates, Left, Width, Height, Top;
+            if (updCord == "true") {
+                configdetails = $("#hdnCoordinates").val();;
+                coordinates = configdetails.split(',');
+                Left = coordinates[0], Width = coordinates[2], Height = coordinates[3];
+                Top = $('.documentVisual img').height() - coordinates[1];
+                //FinalTop = $('.documentVisual img').height() - Top;
+            }
+            else {
+                configdetails = GetCoordinates($("#hdnSigPosition").val(), docType);
+                coordinates = configdetails.split(',');
+                Left = coordinates[0], Width = coordinates[2], Height = coordinates[3];
+                Top = $('.documentVisual img').height() - coordinates[1];
+                //FinalTop = Top;//$('.documentVisual img').height() - Top;
+            }
+            if (IsCustomized == "True") {
+                for (j = 0; j < PDetails.length; j++) {
+                    if (PDetails[j] == pageNumber) {
+                        $('#page_' + pageNumber).append('<div  id="draggableDiv_' + 1 + '" class="dragDiv Signatory' + 1 + '" style="left:' + Left + 'px; top:' + Top + 'px; height:60px; width:120px;"><span class="signImg"></span><span class="signerName" style="display:none;"></span></div>');
+                        $('#draggableDiv_' + 1).draggable({ disabled: false }).resizable({ disabled: false });
+                        $('#draggableDiv_' + 1).draggable({ containment: "#page_" + pageNumber, scroll: false, stop: function () { UpdateCoordinates(this); } });
+                        $('#draggableDiv_' + 1).resizable({ containment: "#page_" + pageNumber, maxHeight: 250, maxWidth: 350, minHeight: 60, minWidth: 120, stop: function () { UpdateCoordinates(this); } });
+                    }
+                }
+            }
+            else {
+                for (j = 0; j < PDetails.length; j++) {
+                    if (PDetails[j] == pageNumber || IsInitialsCustomized == "True" || ValidateAllPlaceholders == "True") {
+                        $('#page_' + PDetails[j]).append('<div  id="draggableDiv_' + (j + 1) + '_' + PDetails[j] + '" class="dragDiv Signatory' + 1 + '" style="left:' + Left + 'px; top:' + Top + 'px; height:60px; width:120px;"><span class="signImg"></span><span class="signerName" style="display:none;"></span></div>');
+
+                        //if (window.Boolean(ValidateAllPlaceholders)) {
+                        //    var config = { PageNo: PDetails[j], Topvalue: Top, DivId: "draggableDiv_" + (j + 1) + "_" + PDetails[j] + "~" + PDetails[j] };
+                        //    IndconfigDetailswithAllPage.push(config);
+                        //}
+
+                    }
+                }
+            }
+        }
+        else {
+            var PDetails = new Array();
+            for (i = 0; i < PageCount; i++) {
+                if (((i + 1) % 2) != 0) {
+                    PDetails.push((i + 1));
+                }
+            }
+            var configdetails, coordinates, Left, Width, Height, Top;
+            if (updCord == "true") {
+                configdetails = $("#hdnCoordinates").val();;
+                coordinates = configdetails.split(',');
+                Left = coordinates[0], Width = coordinates[2], Height = coordinates[3];
+                Top = $('.documentVisual img').height() - coordinates[1];
+                //FinalTop = $('.documentVisual img').height() - Top;
+            }
+            else {
+                configdetails = GetCoordinates($("#hdnSigPosition").val(), docType);
+                coordinates = configdetails.split(',');
+                Left = coordinates[0], Width = coordinates[2], Height = coordinates[3];
+                Top = $('.documentVisual img').height() - coordinates[1];
+                //FinalTop = Top;//$('.documentVisual img').height() - Top;
+            }
+            if (IsCustomized == "True") {
+                for (j = 0; j < PDetails.length; j++) {
+                    if (PDetails[j] == pageNumber) {
+                        $('#page_' + pageNumber).append('<div  id="draggableDiv_' + 1 + '" class="dragDiv Signatory' + 1 + '" style="left:' + Left + 'px; top:' + Top + 'px; height:60px; width:120px;"><span class="signImg"></span><span class="signerName" style="display:none;"></span></div>');
+                        $('#draggableDiv_' + 1).draggable({ disabled: false }).resizable({ disabled: false });
+                        $('#draggableDiv_' + 1).draggable({ containment: "#page_" + pageNumber, scroll: false, stop: function () { UpdateCoordinates(this); } });
+                        $('#draggableDiv_' + 1).resizable({ containment: "#page_" + pageNumber, maxHeight: 250, maxWidth: 350, minHeight: 60, minWidth: 120, stop: function () { UpdateCoordinates(this); } });
+                    }
+                }
+            }
+            else {
+                for (j = 0; j < PDetails.length; j++) {
+                    if (PDetails[j] == pageNumber || IsInitialsCustomized == "True" || ValidateAllPlaceholders == "True") {
+                        $('#page_' + PDetails[j]).append('<div  id="draggableDiv_' + (j + 1) + '_' + PDetails[j] + '" class="dragDiv Signatory' + 1 + '" style="left:' + Left + 'px; top:' + Top + 'px; height:60px; width:120px;"><span class="signImg"></span><span class="signerName" style="display:none;"></span></div>');
+                        //if (window.Boolean(ValidateAllPlaceholders)) {
+                        //    var config = { PageNo: PDetails[j], Topvalue: Top, DivId: "draggableDiv_" + (j + 1) + "_" + PDetails[j] + "~" + PDetails[j] };
+                        //    IndconfigDetailswithAllPage.push(config);
+                        //}
+                    }
+                }
+            }
+        }
+        if (ValidateAllPlaceholders == "True") {
+            GetAllPlaceholdersID();
+        }
+    }
+
+    function UpdateProfileCoordinates(pageCount, docType) {
+        var PageValue = $("#hdnSelectPage").val(); // specify
+        var SelectedValue = $("#hdnSigPosition").val(); //customize
+
+        var PageNumberDetails = Array();
+        var pageCount = $('.documentVisual').length;
+        var pageCount = $("#hdnNoOfPages").val();
+        var Left, Top, Height, Width;
+
+        if (PageValue == "FIRST") {
+            PageNumberDetails.push(1);
+        }
+        else if (PageValue == "ALL") {
+            for (i = 0; i < pageCount; i++) {
+                PageNumberDetails.push((i + 1));
+            }
+        }
+        else if (PageValue == "EVEN") {
+            for (i = 0; i < pageCount; i++) {
+                if (((i + 1) % 2) == 0) {
+                    PageNumberDetails.push((i + 1));
+                }
+            }
+        }
+        else if (PageValue == "ODD") {
+            for (i = 0; i < pageCount; i++) {
+                if (((i + 1) % 2) != 0) {
+                    PageNumberDetails.push((i + 1));
+                }
+            }
+        }
+        else if (PageValue == "LAST") {
+            PageNumberDetails.push(pageCount);
+        }
+        else if (PageValue == "SPECIFY") {
+            var PageNumbers = $("#hdnPageNumber").val().split(',');
+            for (i = 0; i < PageNumbers.length; i++) {
+                PageNumberDetails.push(PageNumbers[i]);
+            }
+            // PageNumberDetails.push(PageNumbers);
+
+            $("#txtPageNumber").val("");
+            $('#divPageNumber').show();
+            $("#pageLevel").hide();
+            $("#signerposition").show();
+        }
+        else {
+            PageNumberDetails = $('#txtPageNumber').val();
+        }
+        if (PageValue == "PAGE LEVEL") {
+
+            $('#SignerPageLevels').empty();
+            $('#divPageNumber').hide();
+            $("#divCoordinates").hide();
+            $("#divposition").hide();
+            $("#pageLevel").show();
+            $("#signerposition").hide();
+            var currentId = 1;
+            $('.Signatory' + currentId + '').remove();
+            $("#PLevelProfile").show();
+            CreatePageLevelSignatory();
+
+        }   //else {
+        //    var CSVPageNumbers = $("#txtPageNumber").val().split(',');
+        //    for (m = 0; m < CSVPageNumbers.length; m++) {
+        //        PageNumberDetails.push(CSVPageNumbers[m]);
+        //    }
+        //}
+        else {
+            var actualPageHeight = 0;
+            prHeight = $('.documentVisual img').height();
+            actualPageHeight = $('.documentVisual img')[0].offsetHeight;
+            $('#divCoordinates').hide();
+            if (SelectedValue == "Top-Left") {
+                // Left = 7; TopDetails = docType == "Portrait" ? 839 : 590; Height = 60; Width = 120;
+                //Top = prHeight - TopDetails; 
+                Left = defaultLeftPxValue; TopDetails = actualPageHeight - defaultTopPxValue; Height = 60; Width = 120;
+                Top = prHeight - TopDetails;
+            }
+            else if (SelectedValue == "Top-Center") {
+                //Left = docType == "Portrait" ? 244 : 380; TopDetails = docType == "Portrait" ? 839 : 590; Height = 60; Width = 120;
+                //Top = prHeight - TopDetails;
+                Left = ((($('.documentVisual img')[0].offsetWidth / 2) - (defaultWidthPxValue / 2)) + defaultLeftPxValue) + $('.documentVisual img')[0].offsetLeft;
+                TopDetails = actualPageHeight - defaultTopPxValue; Height = 60; Width = 120;
+                Top = prHeight - TopDetails;
+            }
+            else if (SelectedValue == "Top-Right") {
+                //Left = docType == "Portrait" ? 469 : 714; TopDetails = docType == "Portrait" ? 839 : 590; Height = 60; Width = 120;
+                //Top = prHeight - TopDetails;
+                Left = (($('.documentVisual img')[0].offsetWidth - defaultWidthPxValue) - defaultLeftPxValue) - $('.documentVisual img')[0].offsetLeft;
+                TopDetails = actualPageHeight - defaultTopPxValue; Height = 60; Width = 120;
+                Top = prHeight - TopDetails;
+            }
+            else if (SelectedValue == "Middle-Left") {
+                //Left = 7; TopDetails = docType == "Portrait" ? 485 : 359; Height = 60; Width = 120;
+                //Top = prHeight - TopDetails;
+                Left = defaultLeftPxValue; TopDetails = (Number(prHeight) + defaultHeightPxValue) / 2; Height = 60; Width = 120;
+                Top = prHeight - TopDetails;
+            }
+            else if (SelectedValue == "Middle-Center") {
+                //Left = docType == "Portrait" ? 243 : 361; TopDetails = docType == "Portrait" ? 484 : 331; Height = 60; Width = 120;
+                //Top = prHeight - TopDetails;
+                Left = ((($('.documentVisual img')[0].offsetWidth / 2) - (defaultWidthPxValue / 2)) + defaultLeftPxValue) + $('.documentVisual img')[0].offsetLeft;
+                TopDetails = (Number(prHeight) + defaultHeightPxValue) / 2;
+                Height = 60; Width = 120;
+                Top = prHeight - TopDetails;
+            }
+            else if (SelectedValue == "Middle-Right") {
+                //Left = docType == "Portrait" ? 468 : 715; TopDetails = docType == "Portrait" ? 483 : 348; Height = 60; Width = 120;
+                //Top = prHeight - TopDetails;
+                Left = (($('.documentVisual img')[0].offsetWidth - defaultWidthPxValue) - defaultLeftPxValue) - $('.documentVisual img')[0].offsetLeft;
+                TopDetails = (Number(prHeight) + defaultHeightPxValue) / 2;
+                Height = 60; Width = 120;
+                Top = prHeight - TopDetails;
+            }
+            else if (SelectedValue == "Bottom-Left") {
+                //Left = 7; TopDetails = 65; Height = 60; Width = 120;
+                //Top = prHeight - TopDetails;
+                Left = defaultLeftPxValue;
+                TopDetails = defaultHeightPxValue + defaultBottomPxValue;
+                Height = 60; Width = 120;
+                Top = prHeight - TopDetails;
+            }
+            else if (SelectedValue == "Bottom-Center") {
+                //Left = docType == "Portrait" ? 248 : 361; TopDetails = docType == "Portrait" ? 65 : 71; Height = 60; Width = 120;
+                //Top = prHeight - TopDetails;
+                Left = ((($('.documentVisual img')[0].offsetWidth / 2) - (defaultWidthPxValue / 2)) + defaultLeftPxValue) + $('.documentVisual img')[0].offsetLeft;
+                TopDetails = defaultHeightPxValue + defaultBottomPxValue;
+                Height = 60; Width = 120;
+                Top = prHeight - TopDetails;
+            }
+            else if (SelectedValue == "Bottom-Right") {
+                //Left = docType == "Portrait" ? 468 : 714; TopDetails = docType == "Portrait" ? 66 : 68; Height = 60; Width = 120;
+                //Top = prHeight - TopDetails;
+                Left = (($('.documentVisual img')[0].offsetWidth - defaultWidthPxValue) - defaultLeftPxValue) - $('.documentVisual img')[0].offsetLeft;
+                TopDetails = defaultHeightPxValue + defaultBottomPxValue;
+                Height = 60; Width = 120;
+                Top = prHeight - TopDetails;
+            }
+            else {
+                var coordinates = $("#hdnCustomizecoordinates").val().split(',');
+                Left = coordinates[0], Width = 120, Height = 60;
+                Top = coordinates[1];
+            }
+            $(".Signatory" + 1 + "").remove();
+            for (x = 0; x < PageNumberDetails.length; x++) {
+                $('#page_' + PageNumberDetails[x]).append('<div id="draggableDiv_' + 1 + '_' + (x + 1) + '" class="dragDiv Signatory' + 1 + '" style="left:' + Left + 'px; top:' + Top + 'px;height:' + Height + 'px; width:' + Width + 'px;"><span class="signImg"></span><span class="signerName" style="display:none;"></span><a href="javascript:void(0);" id="DeleteSigners_' + 1 + '" class="delSigner" title="Delete"></div>');
+                $('#draggableDiv_' + 1 + '_' + (x + 1)).draggable({ containment: "#page_" + PageNumberDetails[x], scroll: false, stop: function () { UpdateCoordinates(this); } });
+                $('#draggableDiv_' + 1 + '_' + (x + 1)).resizable({ containment: "#page_" + PageNumberDetails[x], maxHeight: 250, maxWidth: 350, minHeight: 60, minWidth: 120, stop: function () { UpdateCoordinates(this); } });
+                //$('#draggableDiv_' + 1 + '_' + (x + 1)).draggable({ disabled: false }).resizable({ disabled: false });
+            }
+            $('.Signatory' + 1).draggable({ disabled: false }).resizable({ disabled: false });
+            Top = $('.documentVisual img').height() - Top;
+            Height = (Number(Top) - Number(Height));
+            Width = (Number(Left) + Number(Width));
+
+            Coordinates = Left + ',' + Top + ',' + Width + ',' + Height;
+            updCord = "true";
+            $("#hdnCoordinates").val(Coordinates);
+            //customselectPage = "true";
+        }
+    }
+
+
+    function GetCoordinates(selectedSignaturePosition, docType) {
+        var Coordinates = "";
+        $("#ddlSignaturePosition").val(selectedSignaturePosition);
+        var ddlPageSelection = $("#hdnSelectPage").val();
+        $("#ddlPageSelection").val(ddlPageSelection);
+
+        var actualPageHeight = 0;
+        prHeight = $('.documentVisual img').height();
+        actualPageHeight = $('.documentVisual img')[0].offsetHeight;
+
+        switch (selectedSignaturePosition) {
+            case "Top-Left":
+                $('#txtLeft').attr('disabled', true);
+                //Left = 7; TopDetails = docType == "Portrait" ? 839 : 590; Height = 60; Width = 120;
+                //var top1 = $('.documentVisual img').height()
+                //Top = prHeight - TopDetails;
+                Left = defaultLeftPxValue; TopDetails = actualPageHeight - defaultTopPxValue; Height = 60; Width = 120;
+                Top = prHeight - TopDetails;
+                return Coordinates = Left + "," + TopDetails + "," + (parseInt(Left) + parseInt(Width)) + "," + (parseInt(TopDetails) - parseInt(Height));
+                break;
+            case "Top-Center":
+                //Left = docType == "Portrait" ? 244 : 380; TopDetails = docType == "Portrait" ? 839 : 590; Height = 60; Width = 120;
+                //Top = prHeight - TopDetails;
+                Left = ((($('.documentVisual img')[0].offsetWidth / 2) - (defaultWidthPxValue / 2)) + defaultLeftPxValue) + $('.documentVisual img')[0].offsetLeft;
+                TopDetails = actualPageHeight - defaultTopPxValue; Height = 60; Width = 120;
+                Top = prHeight - TopDetails;
+                return Coordinates = Left + "," + TopDetails + "," + (parseInt(Left) + parseInt(Width)) + "," + (parseInt(TopDetails) - parseInt(Height));
+                break;
+
+            case "Top-Right":
+                //Left = docType == "Portrait" ? 469 : 714; TopDetails = docType == "Portrait" ? 839 : 590; Height = 60; Width = 120;
+                //Top = prHeight - TopDetails;
+                Left = (($('.documentVisual img')[0].offsetWidth - defaultWidthPxValue) - defaultLeftPxValue) - $('.documentVisual img')[0].offsetLeft;
+                TopDetails = actualPageHeight - defaultTopPxValue; Height = 60; Width = 120;
+                Top = prHeight - TopDetails;
+                return Coordinates = Left + "," + TopDetails + "," + (parseInt(Left) + parseInt(Width)) + "," + (parseInt(TopDetails) - parseInt(Height));
+                break;
+            case "Middle-Left":
+                //Left = 7; TopDetails = docType == "Portrait" ? 485 : 359; Height = 60; Width = 120;
+                //Top = prHeight - TopDetails;
+                Left = defaultLeftPxValue; TopDetails = (Number(prHeight) + defaultHeightPxValue) / 2; Height = 60; Width = 120;
+                Top = prHeight - TopDetails;
+                return Coordinates = Left + "," + TopDetails + "," + (parseInt(Left) + parseInt(Width)) + "," + (parseInt(TopDetails) - parseInt(Height));
+                break;
+            case "Middle-Center":
+                //Left = docType == "Portrait" ? 243 : 361; TopDetails = docType == "Portrait" ? 484 : 331; Height = 60; Width = 120;
+                //Top = prHeight - TopDetails;
+                Left = ((($('.documentVisual img')[0].offsetWidth / 2) - (defaultWidthPxValue / 2)) + defaultLeftPxValue) + $('.documentVisual img')[0].offsetLeft;
+                TopDetails = (Number(prHeight) + defaultHeightPxValue) / 2;
+                Height = 60; Width = 120;
+                Top = prHeight - TopDetails;
+                return Coordinates = Left + "," + TopDetails + "," + (parseInt(Left) + parseInt(Width)) + "," + (parseInt(TopDetails) - parseInt(Height));
+                break;
+            case "Middle-Right":
+                //Left = docType == "Portrait" ? 468 : 715; TopDetails = docType == "Portrait" ? 483 : 348; Height = 60; Width = 120;
+                //Top = prHeight - TopDetails;
+                Left = (($('.documentVisual img')[0].offsetWidth - defaultWidthPxValue) - defaultLeftPxValue) - $('.documentVisual img')[0].offsetLeft;
+                TopDetails = (Number(prHeight) + defaultHeightPxValue) / 2;
+                Height = 60; Width = 120;
+                Top = prHeight - TopDetails;
+                return Coordinates = Left + "," + TopDetails + "," + (parseInt(Left) + parseInt(Width)) + "," + (parseInt(TopDetails) - parseInt(Height));
+                break;
+            case "Bottom-Left":
+                Left = defaultLeftPxValue;
+                TopDetails = defaultHeightPxValue + defaultBottomPxValue;
+                Height = 60; Width = 120;
+                Top = prHeight - TopDetails;
+                return Coordinates = Left + "," + TopDetails + "," + (parseInt(Left) + parseInt(Width)) + "," + (parseInt(TopDetails) - parseInt(Height));
+                break;
+            case "Bottom-Center":
+                Left = ((($('.documentVisual img')[0].offsetWidth / 2) - (defaultWidthPxValue / 2)) + defaultLeftPxValue) + $('.documentVisual img')[0].offsetLeft;
+                TopDetails = defaultHeightPxValue + defaultBottomPxValue;
+                Height = 60; Width = 120;
+                Top = prHeight - TopDetails;
+                return Coordinates = Left + "," + TopDetails + "," + (parseInt(Left) + parseInt(Width)) + "," + (parseInt(TopDetails) - parseInt(Height));
+                break;
+            case "Bottom-Right":
+                Left = (($('.documentVisual img')[0].offsetWidth - defaultWidthPxValue) - defaultLeftPxValue) - $('.documentVisual img')[0].offsetLeft;
+                TopDetails = defaultHeightPxValue + defaultBottomPxValue;
+                Height = 60; Width = 120;
+                Top = prHeight - TopDetails;
+                return Coordinates = Left + "," + TopDetails + "," + (parseInt(Left) + parseInt(Width)) + "," + (parseInt(TopDetails) - parseInt(Height));
+                break;
+            default:
+                return Coordinates = $("#hdnCustomizecoordinates").val();
+                break;
+        }
+    }
+    if (SignatureImg != "" && SignatureImg != null) {
+        $("#SignOptions").hide();
+        $("#SignatureImageTrue").show();
+    }
+    else {
+        $("#SignOptions").show();
+    }
+
+    //from here Customize will start
+    //----------------- <span class="signImg"></span><span class="signerName" style="display:none;"></span><a href="javascript:void(0);" id="DeleteSigners_' + 1 + '" class="delSigner" title="Delete"><span></span></a> -----------
+    function UpdateCustomCoordinates(pageCount, docType) {
+        var Left, Top, Height, Width;
+        Left = defaultLeftPxValue; TopDetails = $('.documentVisual img').height() - defaultTopPxValue; Height = 60; Width = 120;
+        Top = prHeight - TopDetails;
+        $('#page_1').append('<div id="draggableDiv_' + 1 + '_' + (0 + 1) + '" class="dragDiv Signatory' + 1 + '" style="left:' + Left + 'px; top:' + Top + 'px;height:' + Height + 'px; width:' + Width + 'px;"><span class="signImg"></span><span class="signerName" style="display:none;"></span></div>');
+        $('#draggableDiv_' + 1 + '_' + (0 + 1)).draggable({ containment: "#page_1", scroll: false, stop: function () { UpdateCoordinates(this); } });
+        $('#draggableDiv_' + 1 + '_' + (0 + 1)).resizable({ containment: "#page_1", maxHeight: 250, maxWidth: 350, minHeight: 60, minWidth: 120, stop: function () { UpdateCoordinates(this); } });
+
+        $('.Signatory' + 1).draggable({ disabled: false }).resizable({ disabled: false });
+
+        Top = $('.documentVisual img').height() - Top;
+        Height = (Number(Top) - Number(Height));
+        Width = (Number(Left) + Number(Width));
+
+        Coordinates = Left + ',' + Top + ',' + Width + ',' + Height;
+        updCord = "true";
+        $("#hdnCoordinates").val(Coordinates);
+        $("#ddlSignaturePosition").val("CUSTOMIZE");
+        $("#ddlPageSelection").val("FIRST");
+        //customselectPage = "true";
+
+        $(".delSigner").on("click", function () {
+            var Id = $(this).attr('id');
+            var SignerLength = 2
+            var Final_Li_Length = SignerLength - 1;
+            if (Final_Li_Length == 1) {
+                $('#btnmsgok').removeAttr('onClick');
+                $("#btnmsgcancel").hide();
+                $("#msgcontent").attr("class", "info");
+                $('#msgcontent').html("Can not delete");
+                $(".alertWindow").css({ 'display': "block" });
+                $('#btnmsgok').attr('onclick', "");
+                $('#btnmsgok').attr("href", "javascript:Returncontrol('Y','');");
+                return false;
+            }
+        });
+
+        if (ValidateAllPlaceholders == "True") {
+            GetAllPlaceholdersID();
+        }
+
+    }
+
+    function UpdateCoordinates(divBox) {
+        var id = divBox.id.replace('draggableDiv_', '');
+        var currentId = id.split('_')[0];
+        var selectedSignaturePosition = $('#ddlPageSelection option:selected').val();
+        if (selectedSignaturePosition == "PAGE LEVEL") {
+            var signatorylength = $(".Signatory" + currentId).length;
+            var config = "";
+            for (i = 1; i <= signatorylength; i++) {
+                var Page = $('#fieldPagination_' + i + ' option:selected').val();
+                var id = $('#draggableDiv_' + currentId + '_' + i)[0];
+                var Width = id.offsetWidth;
+                var Height = id.offsetHeight;
+                var Left = id.offsetLeft;
+                var Top = id.offsetTop;
+                Top = $('.documentVisual img').height() - Top;
+                Height = (Number(Top) - Number(Height));
+                Width = (Number(Left) + Number(Width));
+                config += Page + ',' + Left + ',' + Top + ',' + Width + ',' + Height + ';';
+
+                //Coordinates = Left + ',' + Top + ',' + Width + ',' + Height;
+                //updCord = "true";
+                //$("#hdnCoordinates").val(Coordinates);
+                //$("#ddlSignaturePosition").val("CUSTOMIZE");
+                //customselectPage = "true";
+            }
+
+            Coordinates = Left + ',' + Top + ',' + Width + ',' + Height;
+            updCord = "true";
+            $("#hdnCoordinates").val(config);
+            $("#hdnPagelevelCordinates").val(config);
+            customselectPage = "true";
+
+        }
+        else {
+            // if (configDetails[4] == "CUSTOMIZE") {
+            if (selectedSignaturePosition == "ALL" || selectedSignaturePosition == "EVEN" || selectedSignaturePosition == "EVEN" || selectedSignaturePosition == "ODD" || selectedSignaturePosition == "SPECIFY") {
+                var Width = parseInt(divBox.offsetWidth);
+                var Height = parseInt(divBox.offsetHeight);
+                var Left = divBox.offsetLeft;
+                var Top = divBox.offsetTop;
+                $('.Signatory' + currentId + '').attr("style", "left: " + Left + "px; top:" + Top + "px; width: " + Width + "px; height:" + Height + "px; position: absolute;");
+            }
+            //  }
+            var Width = parseInt(divBox.offsetWidth);
+            var Height = parseInt(divBox.offsetHeight);
+            var Left = divBox.offsetLeft;
+            var Top = divBox.offsetTop;
+            $("#ddlSignaturePosition").val("CUSTOMIZE");
+            //  $('.Signatory' + currentId + '').attr("style", "left: " + Left + "px; top:" + Top + "px; width: " + Width + "px; height:" + Height + "px; position: absolute;");
+            $("#txtLeft").val(Left);
+            $("#txtTop").val(Top);
+            $("#txtHeight").val(Height);
+            $("#txtWidth").val(Width);
+            Top = $('.documentVisual img').height() - Top;
+            Height = (Number(Top) - Number(Height));
+            Width = (Number(Left) + Number(Width));
+            //var newConfigDetails = configDetails[0] + "_" + configDetails[1] + "_" + configDetails[2] + "_" + configDetails[3] + "_" + "CUSTOMIZE" + "_" + configDetails[5] + "_" + Left + "_" + Top + "_" + Width + "_" + Height + "_" + configDetails[10] + "_" + configDetails[11] + "_" + configDetails[12];
+            //$('#hdnconfig_' + currentId + '_' + docid + '').val(newConfigDetails);
+            $(".Signatory" + currentId + "").draggable({ disabled: false }).resizable({ disabled: false });
+
+            Coordinates = Left + ',' + Top + ',' + Width + ',' + Height;
+            updCord = "true";
+            $("#hdnCoordinates").val(Coordinates);
+            $("#ddlSignaturePosition").val("CUSTOMIZE");
+            customselectPage = "true";
+        }
+        if (ValidateAllPlaceholders == "True") {
+            GetAllPlaceholdersID();
+        }
+    }
+
+    $('#ddlPageSelection').change(function () {
+        var Left, Top, Height, Width;
+        var SelectedValue = $('#ddlPageSelection option:selected').val();
+        var pageCount = $("#hdnTotalPages").val(); //var pageCount = $('.documentVisual').length;
+        var PageNo = "";
+        if (SelectedValue == "FIRST") {
+            PageNo = 1;
+            $("#divposition").show();
+            $('#divPageNumber').hide();
+            $("#signerposition").show();
+            $("#pageLevel").hide();
+        }
+        else if (SelectedValue == "ALL") {
+            for (i = 0; i < pageCount; i++) {
+                PageNo += (i + 1) + ",";
+            }
+            $("#divposition").show();
+            $('#divPageNumber').hide();
+            $("#signerposition").show();
+            $("#pageLevel").hide();
+
+        }
+        else if (SelectedValue == "EVEN") {
+            for (i = 0; i < pageCount; i++) {
+                if (((i + 1) % 2) == 0) {
+                    PageNo += (i + 1) + ",";
+                }
+            }
+            $("#divposition").show();
+            $('#divPageNumber').hide();
+            $("#signerposition").show();
+            $("#pageLevel").hide();
+        }
+        else if (SelectedValue == "ODD") {
+            for (i = 0; i < pageCount; i++) {
+                if (((i + 1) % 2) != 0) {
+                    PageNo += (i + 1) + ",";
+                }
+            }
+            $("#divposition").show();
+            $('#divPageNumber').hide();
+            $("#signerposition").show();
+            $("#pageLevel").hide();
+        }
+        else if (SelectedValue == "LAST") {
+            PageNo = pageCount;
+            $("#divposition").show();
+            $('#divPageNumber').hide();
+            $("#signerposition").show();
+            $("#pageLevel").hide();
+        }
+        else {
+            PageNo = $('#txtPageNumber').val();
+        }
+        if (SelectedValue == "PAGE LEVEL") {
+
+
+            $('#SignerPageLevels').empty();
+            $('#divPageNumber').hide();
+            $("#divCoordinates").hide();
+            $("#divposition").hide();
+            $("#pageLevel").show();
+            $("#signerposition").hide();
+            var currentId = 1;
+            $('.Signatory' + currentId + '').remove();
+            $("#PLevelProfile").show();
+            CreatePageLevelSignatory();
+
+        }
+        else if (SelectedValue == "SPECIFY") {
+            PageNo = $("#txtPageNumber").val();
+            $("#txtPageNumber").val("");
+            $('#divPageNumber').show();
+            $("#pageLevel").hide();
+            $("#signerposition").show();
+
+        }
+        else {
+            $('#txtPageNumber').val("");
+            // $('#txtSpecify').attr('disabled', true);
+            //  $("#btnApply").attr('disabled', true);
+            $("#divPageNumber").hide();
+            $('.field-validation-error')
+                .removeClass('field-validation-error')
+                .addClass('field-validation-valid');
+            $('.input-validation-error')
+                .removeClass('input-validation-error')
+                .addClass('valid');
+            $(".field-validation-error").empty();
+            $('.field-validation-valid span').html('');
+            $("#otherLevel").show();
+            $("#pageLevel").hide();
+
+
+            var selectedSignaturePosition = $('#ddlSignaturePosition option:selected').val();
+            if (selectedSignaturePosition == "CUSTOMIZE") {
+                $('#txtTop, #txtHeight, #txtWidth, #txtLeft').attr('disabled', true);
+                Left = defaultLeftPxValue; TopDetails = $('.documentVisual img').height() - defaultTopPxValue; Height = 60; Width = 120;
+                Top = $('.documentVisual img').height() - TopDetails;
+                Height = (Number(TopDetails) - Number(Height));
+                Width = (Number(Left) + Number(Width));
+                $("#txtLeft").val(Left);
+                $("#txtTop").val(TopDetails);
+                $("#txtHeight").val(Height);
+                $("#txtWidth").val(Width);
+
+                var NewHeight = 60;
+                var NewWidth = 120;
+                if (SelectedValue == "FIRST") {
+                    $(".Signatory" + 1 + "").remove();
+                    $('#page_' + PageNo).append('<div id="draggableDiv_' + 1 + '_1" class="dragDiv Signatory' + 1 + '" style="left:' + Left + 'px; top:' + Top + 'px; height:' + NewHeight + 'px; width:' + NewWidth + 'px;"><span class="signImg"></span><span class="signerName" style="display:none;"></span></div>');
+                    //$('#draggableDiv_'+1).draggable({ disabled: false }).resizable({ disabled: false });
+                    $('#draggableDiv_' + 1 + '_1').draggable({ containment: "#page_1", scroll: false, stop: function () { UpdateCoordinates(this); } });
+                    $('#draggableDiv_' + 1 + '_1').resizable({ containment: "#page_1", maxHeight: 250, maxWidth: 350, minHeight: 60, minWidth: 120, stop: function () { UpdateCoordinates(this); } });
+                }
+                else if (SelectedValue == "LAST") {
+                    $(".Signatory" + 1 + "").remove();
+                    $('#page_' + PageNo).append('<div id="draggableDiv_' + 1 + '_1" class="dragDiv Signatory' + 1 + '" style="left:' + Left + 'px; top:' + Top + 'px; height:' + NewHeight + 'px; width:' + NewWidth + 'px;"><span class="signImg"></span><span class="signerName" style="display:none;"></span></div>');
+                    // $('#draggableDiv_' + 1).draggable({ disabled: false }).resizable({ disabled: false });
+                    $('#draggableDiv_' + 1 + '_1').draggable({ containment: "#page_" + PageNo, scroll: false, stop: function () { UpdateCoordinates(this); } });
+                    $('#draggableDiv_' + 1 + '_1').resizable({ containment: "#page_" + PageNo, maxHeight: 250, maxWidth: 350, minHeight: 60, minWidth: 120, stop: function () { UpdateCoordinates(this); } });
+                }
+                else {
+                    var PageNumberDetails = PageNo.split(',');
+                    $(".Signatory" + 1 + "").remove();
+                    for (i = 0; i < PageNumberDetails.length - 1; i++) {
+                        $('#page_' + PageNumberDetails[i]).append('<div  id="draggableDiv_' + 1 + '_' + (i + 1) + '" class="dragDiv Signatory' + 1 + '" style="left:' + Left + 'px; top:' + Top + 'px;  height:' + NewHeight + 'px; width:' + NewWidth + 'px;"><span class="signImg"></span><span class="signerName" style="display:none;"></span></div>');
+                        //$('#draggableDiv_' + 1 ).draggable({ disabled: false }).resizable({ disabled: false });
+                        $('#draggableDiv_' + 1 + '_' + (i + 1) + '').draggable({ containment: "#page_" + PageNumberDetails[i], scroll: false, stop: function () { UpdateCoordinates(this); } });
+                        $('#draggableDiv_' + 1 + '_' + (i + 1) + '').resizable({ containment: "#page_" + PageNumberDetails[i], maxHeight: 250, maxWidth: 350, minHeight: 60, minWidth: 120, stop: function () { UpdateCoordinates(this); } });
+                    }
+                }
+                //$('#draggableDiv_' + 1).draggable({ disabled: false }).resizable({ disabled: false });
+                //Top = $('.documentVisual img').height() - Top;
+                //Height = (Number(Top) - Number(Height));
+                //Width = (Number(Left) + Number(Width));
+
+                Coordinates = Left + ',' + Top + ',' + Width + ',' + Height;
+                updCord = "true";
+                $("#hdnCoordinates").val(Coordinates);
+                customselectPage = "true";
+            }
+            else {
+                var actualPageHeight = 0;
+                prHeight = $('.documentVisual img').height();
+                actualPageHeight = $('.documentVisual img')[0].offsetHeight;
+                if (selectedSignaturePosition == "Top-Left") {
+                    $('#txtLeft').attr('disabled', true);
+                    Left = defaultLeftPxValue; TopDetails = actualPageHeight - defaultTopPxValue; Height = 60; Width = 120;
+                    var top1 = $('.documentVisual img').height()
+                    Top = prHeight - TopDetails;
+                    $("#txtLeft").val(Left);
+                    $("#txtTop").val(TopDetails);
+                    $("#txtHeight").val(Height);
+                    $("#txtWidth").val(Width);
+
+                }
+                else if (selectedSignaturePosition == "Top-Center") {
+                    Left = ((($('.documentVisual img')[0].offsetWidth / 2) - (defaultWidthPxValue / 2)) + defaultLeftPxValue) + $('.documentVisual img')[0].offsetLeft;
+                    TopDetails = actualPageHeight - defaultTopPxValue; Height = 60; Width = 120;
+                    Top = prHeight - TopDetails;
+                    $("#txtLeft").val(Left);
+                    $("#txtTop").val(TopDetails);
+                    $("#txtHeight").val(Height);
+                    $("#txtWidth").val(Width);
+
+                }
+                else if (selectedSignaturePosition == "Top-Right") {
+                    Left = (($('.documentVisual img')[0].offsetWidth - defaultWidthPxValue) - defaultLeftPxValue) - $('.documentVisual img')[0].offsetLeft;
+                    TopDetails = actualPageHeight - defaultTopPxValue; Height = 60; Width = 120;
+                    Top = prHeight - TopDetails;
+                    $("#txtLeft").val(Left);
+                    $("#txtTop").val(TopDetails);
+                    $("#txtHeight").val(Height);
+                    $("#txtWidth").val(Width);
+                }
+                else if (selectedSignaturePosition == "Middle-Left") {
+                    Left = defaultLeftPxValue; TopDetails = (Number(prHeight) + defaultHeightPxValue) / 2; Height = 60; Width = 120;
+                    Top = prHeight - TopDetails;
+                    $("#txtLeft").val(Left);
+                    $("#txtTop").val(TopDetails);
+                    $("#txtHeight").val(Height);
+                    $("#txtWidth").val(Width);
+                }
+                else if (selectedSignaturePosition == "Middle-Center") {
+                    Left = ((($('.documentVisual img')[0].offsetWidth / 2) - (defaultWidthPxValue / 2)) + defaultLeftPxValue) + $('.documentVisual img')[0].offsetLeft;
+                    TopDetails = (Number(prHeight) + defaultHeightPxValue) / 2;
+                    Height = 60; Width = 120;
+                    Top = $('.documentVisual img').height() - TopDetails;
+                    $("#txtLeft").val(Left);
+                    $("#txtTop").val(TopDetails);
+                    $("#txtHeight").val(Height);
+                    $("#txtWidth").val(Width);
+                }
+                else if (selectedSignaturePosition == "Middle-Right") {
+                    Left = (($('.documentVisual img')[0].offsetWidth - defaultWidthPxValue) - defaultLeftPxValue) - $('.documentVisual img')[0].offsetLeft;
+                    TopDetails = (Number(prHeight) + defaultHeightPxValue) / 2; Height = 60; Width = 120;
+                    Top = $('.documentVisual img').height() - TopDetails;
+                    $("#txtLeft").val(Left);
+                    $("#txtTop").val(TopDetails);
+                    $("#txtHeight").val(Height);
+                    $("#txtWidth").val(Width);
+                }
+                else if (selectedSignaturePosition == "Bottom-Left") {
+                    Left = defaultLeftPxValue;
+                    TopDetails = defaultHeightPxValue + defaultBottomPxValue; Height = 60; Width = 120;
+                    Top = $('.documentVisual img').height() - TopDetails;
+                    $("#txtLeft").val(Left);
+                    $("#txtTop").val(TopDetails);
+                    $("#txtHeight").val(Height);
+                    $("#txtWidth").val(Width);
+                }
+                else if (selectedSignaturePosition == "Bottom-Center") {
+                    //Left = ((($('.documentVisual img')[0].offsetWidth / 2) + (defaultWidthPxValue / 2)) + defaultLeftPxValue) + $('.documentVisual img')[0].offsetLeft;
+                    Left = ((($('.documentVisual img')[0].offsetWidth / 2) - (defaultWidthPxValue / 2)) + defaultLeftPxValue) + $('.documentVisual img')[0].offsetLeft;
+                    TopDetails = defaultHeightPxValue - defaultBottomPxValue; Height = 60; Width = 120;
+                    Top = prHeight - TopDetails;
+                    $("#txtLeft").val(Left);
+                    $("#txtTop").val(TopDetails);
+                    $("#txtHeight").val(Height);
+                    $("#txtWidth").val(Width);
+                }
+                else if (selectedSignaturePosition == "Bottom-Right") {
+                    Left = (($('.documentVisual img')[0].offsetWidth - defaultWidthPxValue) - defaultLeftPxValue) - $('.documentVisual img')[0].offsetLeft;
+                    TopDetails = defaultHeightPxValue + defaultBottomPxValue; Height = 60; Width = 120;
+                    Top = prHeight - TopDetails;
+                    $("#txtLeft").val(Left);
+                    $("#txtTop").val(TopDetails);
+                    $("#txtHeight").val(Height);
+                    $("#txtWidth").val(Width);
+                }
+
+                var PageNumberDetail = "";
+                if (SelectedValue == "FIRST") {
+                    $(".Signatory" + 1 + "").remove();
+                    $('#page_' + PageNo).append('<div id="draggableDiv_' + 1 + '_1" class="dragDiv Signatory' + 1 + '" style="left:' + Left + 'px; top:' + Top + 'px; height:' + Height + 'px; width:' + Width + 'px;"><span class="signImg"></span><span class="signerName" style="display:none;"></span></div>');
+                    // $('#draggableDiv_' + 1).draggable({ disabled: false }).resizable({ disabled: false });
+                    $('#draggableDiv_' + 1 + '_1').draggable({ containment: "#page_" + PageNo, scroll: false, stop: function () { UpdateCoordinates(this); } });
+                    $('#draggableDiv_' + 1 + '_1').resizable({ containment: "#page_" + PageNo, maxHeight: 250, maxWidth: 350, minHeight: 60, minWidth: 120, stop: function () { UpdateCoordinates(this); } });
+                }
+                else if (SelectedValue == "LAST") {
+                    $(".Signatory" + 1 + "").remove();
+                    $('#page_' + PageNo).append('<div id="draggableDiv_' + 1 + '_1" class="dragDiv Signatory' + 1 + '" style="left:' + Left + 'px; top:' + Top + 'px; height:' + Height + 'px; width:' + Width + 'px;"><span class="signImg"></span><span class="signerName" style="display:none;"></span></div>');
+                    //$('#draggableDiv_' + 1).draggable({ disabled: false }).resizable({ disabled: false });
+                    $('#draggableDiv_' + 1 + '_1').draggable({ containment: "#page_" + PageNo, scroll: false, stop: function () { UpdateCoordinates(this); } });
+                    $('#draggableDiv_' + 1 + '_1').resizable({ containment: "#page_" + PageNo, maxHeight: 250, maxWidth: 350, minHeight: 60, minWidth: 120, stop: function () { UpdateCoordinates(this); } });
+                }
+                else {
+                    PageNumberDetails = PageNo.split(',');
+                    $(".Signatory" + 1 + "").remove();
+                    for (i = 0; i < PageNumberDetails.length - 1; i++) {
+                        $('#page_' + PageNumberDetails[i]).append('<div  id="draggableDiv_' + 1 + '_' + (i + 1) + '" class="dragDiv Signatory' + 1 + '" style="left:' + Left + 'px; top:' + Top + 'px; height:60px; width:120px;"><span class="signImg"></span><span class="signerName" style="display:none;"></span></div>');
+                        // $('#draggableDiv_' + 1).draggable({ disabled: false }).resizable({ disabled: false });
+                        $('#draggableDiv_' + 1 + '_' + (i + 1) + '').draggable({ containment: "#page_" + PageNumberDetails[i], scroll: false, stop: function () { UpdateCoordinates(this); } });
+                        $('#draggableDiv_' + 1 + '_' + (i + 1) + '').resizable({ containment: "#page_" + PageNumberDetails[i], maxHeight: 250, maxWidth: 350, minHeight: 60, minWidth: 120, stop: function () { UpdateCoordinates(this); } });
+                    }
+                }
+
+                Top = $('.documentVisual img').height() - Top;
+                Height = (Number(Top) - Number(Height));
+                Width = (Number(Left) + Number(Width));
+
+                Coordinates = Left + ',' + Top + ',' + Width + ',' + Height;
+                updCord = "true";
+                $("#hdnCoordinates").val(Coordinates);
+                customselectPage = "true";
+                //$('#draggableDiv_' + 1).draggable({ disabled: false }).resizable({ disabled: false });
+            }
+            $(".Signatory" + 1 + "").draggable({ disabled: false }).resizable({ disabled: false });
+        }
+        $(".delSigner").on("click", function () {
+            var Id = $(this).attr('id');
+            var SignerLength = 2;
+            var Final_Li_Length = SignerLength - 1;
+            if (Final_Li_Length == 1) {
+                $('#btnmsgok').removeAttr('onClick');
+                $("#btnmsgcancel").hide();
+                $("#msgcontent").attr("class", "info");
+                $('#msgcontent').html("Atleast one signatory is required to Sign a document.");
+                $(".alertWindow").css({ 'display': "block" });
+                $('#btnmsgok').attr('onclick', "");
+                $('#btnmsgok').attr("href", "javascript:Returncontrol('Y','');");
+                return false;
+            }
+            //var CID = $(this).attr("id").split("_")[1];
+            //$('#btnmsgok').removeAttr('onClick');
+            //$("#msgcontent").attr("class", "info");
+            //$('#msgcontent').html(Doyoureallywanttodelete);
+            //$("#btnmsgcancel").show();
+            //$("#btnmsgcancel").attr('onclick', "javascript:Returncontrol('Y','');");
+            //$(".alertWindow").css({ 'display': "block" });
+            //$('#btnmsgok').attr('href', "javascript:DeleteSigner(" + CID + ");");
+            //return false;
+        });
+
+        if (ValidateAllPlaceholders == "True") {
+            GetAllPlaceholdersID();
+        }
+
+    });
+
+    $('#ddlSignaturePosition').change(function () {
+        var SelectedValue = $('#ddlSignaturePosition option:selected').val();
+        var DocID = $("#hdnDocumentNumber").val();
+        var PageValue = $('#ddlPageSelection option:selected').val();
+        if (SelectedValue == "CUSTOMIZE") {
+            var PageNumberDetails = Array();
+            var pageCount = $('.documentVisual').length;
+            var pageCount = $("#hdnNoOfPages").val();
+            if (PageValue == "FIRST") {
+                PageNumberDetails.push(1);
+            }
+            else if (PageValue == "ALL") {
+                for (i = 0; i < pageCount; i++) {
+                    PageNumberDetails.push((i + 1));
+                }
+            }
+            else if (PageValue == "EVEN") {
+                for (i = 0; i < pageCount; i++) {
+                    if (((i + 1) % 2) == 0) {
+                        PageNumberDetails.push((i + 1));
+                    }
+                }
+            }
+            else if (PageValue == "ODD") {
+                for (i = 0; i < pageCount; i++) {
+                    if (((i + 1) % 2) != 0) {
+                        PageNumberDetails.push((i + 1));
+                    }
+                }
+            }
+            else if (PageValue == "LAST") {
+                PageNumberDetails.push(pageCount);
+            }
+            else {
+                var CSVPageNumbers = $("#txtPageNumber").val().split(',');
+                for (m = 0; m < CSVPageNumbers.length; m++) {
+                    PageNumberDetails.push(CSVPageNumbers[m]);
+                }
+            }
+            $("#divCoordinates").show();
+            var id = $('#draggableDiv_' + 1 + '_' + 1)[0];
+            var Width = parseInt(id.offsetWidth);
+            var Height = parseInt(id.offsetHeight);
+            var Left = id.offsetLeft;
+            var Top = id.offsetTop;
+            //Left = 7; TopDetails = docType == "Portrait" ? 839 : 593; Height = 60; Width = 120;
+            //Top = $('.documentVisual img').height() - TopDetails;
+            $("#txtLeft").val(Left);
+            $("#txtTop").val(TopDetails);
+            $("#txtHeight").val(Height);
+            $("#txtWidth").val(Width);
+
+            if (PageValue == "FIRST") {
+                $(".Signatory" + 1).remove();
+                $('#page_' + PageNumberDetails[0]).append('<div id="draggableDiv_' + 1 + '_1" class="dragDiv Signatory' + 1 + '" style="left:' + Left + 'px; top:' + Top + 'px; height:' + Height + 'px; width:' + Width + 'px;"><span class="signImg"></span><span class="signerName" style="display:none;"></span></div>');
+                $('#draggableDiv_' + 1 + '_1').draggable({ containment: "#page_" + PageNumberDetails[0], scroll: false, stop: function () { UpdateCoordinates(this); } });
+                $('#draggableDiv_' + 1 + '_1').resizable({ containment: "#page_" + PageNumberDetails[0], maxHeight: 250, maxWidth: 350, minHeight: 60, minWidth: 120, stop: function () { UpdateCoordinates(this); } });
+            }
+            else if (PageValue == "LAST") {
+                $(".Signatory" + 1 + "").remove();
+                $('#page_' + PageNumberDetails[0]).append('<div id="draggableDiv_' + 1 + '_1" class="dragDiv Signatory' + 1 + '" style="left:' + Left + 'px; top:' + Top + 'px; height:' + Height + 'px; width:' + Width + 'px;"><span class="signImg"></span><span class="signerName" style="display:none;"></span></div>');
+                $('#draggableDiv_' + 1).draggable({ containment: "#page_" + PageNumberDetails[0], scroll: false, stop: function () { UpdateCoordinates(this); } });
+                $('#draggableDiv_' + 1).resizable({ containment: "#page_" + PageNumberDetails[0], maxHeight: 250, maxWidth: 350, minHeight: 60, minWidth: 120, stop: function () { UpdateCoordinates(this); } });
+            }
+            else {
+                $(".Signatory" + 1 + "").remove();
+                for (i = 0; i < PageNumberDetails.length; i++) {
+                    $('#page_' + PageNumberDetails[i]).append('<div id="draggableDiv_' + 1 + '_' + (i + 1) + '" class="dragDiv Signatory' + 1 + '" style="left:' + Left + 'px; top:' + Top + 'px; height:' + Height + 'px; width:' + Width + 'px;"><span class="signImg"></span><span class="signerName" style="display:none;"></span></div>');
+                    $('#draggableDiv_' + 1 + '_' + (i + 1) + '').draggable({ containment: "#page_" + PageNumberDetails[i], disabled: false, scroll: false, stop: function () { UpdateCoordinates(this); } });
+                    $('#draggableDiv_' + 1 + '_' + (i + 1) + '').resizable({ containment: "#page_" + PageNumberDetails[i], maxHeight: 250, maxWidth: 350, minHeight: 60, minWidth: 120, disabled: false, scroll: false, stop: function () { UpdateCoordinates(this); } });
+                }
+            }
+            $('.Signatory' + 1).draggable({ disabled: false }).resizable({ disabled: false });
+
+            Top = $('.documentVisual img').height() - Top;
+            Height = (Number(Top) - Number(Height));
+            Width = (Number(Left) + Number(Width));
+
+            Coordinates = Left + ',' + Top + ',' + Width + ',' + Height;
+            updCord = "true";
+            $("#hdnCoordinates").val(Coordinates);
+            customselectPage = "true";
+        }
+        else {
+            var PageNumberDetails = Array();
+            var pageCount = $('.documentVisual').length;
+            var pageCount = $("#hdnNoOfPages").val();
+            if (PageValue == "FIRST") {
+                PageNumberDetails.push(1);
+            }
+            else if (PageValue == "ALL") {
+                for (i = 0; i < pageCount; i++) {
+                    PageNumberDetails.push((i + 1));
+                }
+            }
+            else if (PageValue == "EVEN") {
+                for (i = 0; i < pageCount; i++) {
+                    if (((i + 1) % 2) == 0) {
+                        PageNumberDetails.push((i + 1));
+                    }
+                }
+            }
+            else if (PageValue == "ODD") {
+                for (i = 0; i < pageCount; i++) {
+                    if (((i + 1) % 2) != 0) {
+                        PageNumberDetails.push((i + 1));
+                    }
+                }
+            }
+            else if (PageValue == "LAST") {
+                PageNumberDetails.push(pageCount);
+            }
+            else {
+                var CSVPageNumbers = $("#txtPageNumber").val().split(',');
+                for (m = 0; m < CSVPageNumbers.length; m++) {
+                    PageNumberDetails.push(CSVPageNumbers[m]);
+                }
+            }
+            var Left, Top, Height, Width;
+            $('#divCoordinates').hide();
+            var actualPageHeight = 0;
+            prHeight = $('.documentVisual img').height();
+            actualPageHeight = $('.documentVisual img')[0].offsetHeight;
+            if (SelectedValue == "Top-Left") {
+                Left = defaultLeftPxValue; TopDetails = actualPageHeight - defaultTopPxValue; Height = 60; Width = 120;
+                Top = prHeight - TopDetails;
+            }
+            else if (SelectedValue == "Top-Center") {
+                Left = ((($('.documentVisual img')[0].offsetWidth / 2) - (defaultWidthPxValue / 2)) + defaultLeftPxValue) + $('.documentVisual img')[0].offsetLeft;
+                TopDetails = actualPageHeight - defaultTopPxValue; Height = 60; Width = 120;
+                Top = prHeight - TopDetails;
+            }
+            else if (SelectedValue == "Top-Right") {
+                Left = (($('.documentVisual img')[0].offsetWidth - defaultWidthPxValue) - defaultLeftPxValue) - $('.documentVisual img')[0].offsetLeft;
+                TopDetails = actualPageHeight - defaultTopPxValue; Height = 60; Width = 120;
+                Top = prHeight - TopDetails;
+            }
+            else if (SelectedValue == "Middle-Left") {
+                Left = defaultLeftPxValue; TopDetails = (Number(prHeight) + defaultHeightPxValue) / 2; Height = 60; Width = 120;
+                Top = prHeight - TopDetails;
+            }
+            else if (SelectedValue == "Middle-Center") {
+                Left = ((($('.documentVisual img')[0].offsetWidth / 2) - (defaultWidthPxValue / 2)) + defaultLeftPxValue) + $('.documentVisual img')[0].offsetLeft;
+                TopDetails = (Number(prHeight) + defaultHeightPxValue) / 2;
+                Top = prHeight - TopDetails;
+            }
+            else if (SelectedValue == "Middle-Right") {
+                Left = (($('.documentVisual img')[0].offsetWidth - defaultWidthPxValue) - defaultLeftPxValue) - $('.documentVisual img')[0].offsetLeft;
+                TopDetails = (Number(prHeight) + defaultHeightPxValue) / 2;
+                Height = 60; Width = 120;
+                Top = prHeight - TopDetails;
+            }
+            else if (SelectedValue == "Bottom-Left") {
+                Left = defaultLeftPxValue;
+                TopDetails = defaultHeightPxValue + defaultBottomPxValue; Height = 60; Width = 120;
+                Top = prHeight - TopDetails;
+            }
+            else if (SelectedValue == "Bottom-Center") {
+                Left = ((($('.documentVisual img')[0].offsetWidth / 2) - (defaultWidthPxValue / 2)) + defaultLeftPxValue) + $('.documentVisual img')[0].offsetLeft;
+                TopDetails = defaultHeightPxValue + defaultBottomPxValue; Height = 60; Width = 120;
+                Top = prHeight - TopDetails;
+            }
+            else if (SelectedValue == "Bottom-Right") {
+                Left = (($('.documentVisual img')[0].offsetWidth - defaultWidthPxValue) - defaultLeftPxValue) - $('.documentVisual img')[0].offsetLeft;
+                TopDetails = defaultHeightPxValue + defaultBottomPxValue; Height = 60; Width = 120;
+                Top = prHeight - TopDetails;
+            }
+
+            if (PageValue == "FIRST") {
+                $(".Signatory" + 1 + "").remove();
+                $('#page_' + PageNumberDetails[0]).append('<div id="draggableDiv_1' + '_' + 1 + '" class="dragDiv Signatory' + 1 + '" style="left:' + Left + 'px; top:' + Top + 'px; height:' + Height + 'px; width:' + Width + 'px;"><span class="signImg"></span><span class="signerName" style="display:none;"></span></div>');
+                $('#draggableDiv_' + 1 + '_1').draggable({ containment: "#page_" + PageNumberDetails[0], scroll: false, stop: function () { UpdateCoordinates(this); } });
+                $('#draggableDiv_' + 1 + '_1').resizable({ containment: "#page_" + PageNumberDetails[0], maxHeight: 250, maxWidth: 350, minHeight: 60, minWidth: 120, stop: function () { UpdateCoordinates(this); } });
+            }
+            else if (PageValue == "LAST") {
+                $(".Signatory" + 1 + "").remove();
+                $('#page_' + PageNumberDetails[0]).append('<div id="draggableDiv_' + 1 + '_1" class="dragDiv Signatory' + 1 + '" style="left:' + Left + 'px; top:' + Top + 'px; height:' + Height + 'px; width:' + Width + 'px;"><span class="signImg"></span><span class="signerName" style="display:none;"></span></div>');
+                $('#draggableDiv_' + 1 + '_1').draggable({ containment: "#page_" + PageNumberDetails[0], scroll: false, stop: function () { UpdateCoordinates(this); } });
+                $('#draggableDiv_' + 1 + '_1').resizable({ containment: "#page_" + PageNumberDetails[0], maxHeight: 250, maxWidth: 350, minHeight: 60, minWidth: 120, stop: function () { UpdateCoordinates(this); } });
+            }
+            else {
+                $(".Signatory" + 1 + "").remove();
+                for (i = 0; i < PageNumberDetails.length; i++) {
+                    $('#page_' + PageNumberDetails[i]).append('<div id="draggableDiv_' + 1 + '_' + (i + 1) + '" class="dragDiv Signatory1" style="left:' + Left + 'px; top:' + Top + 'px; height:' + Height + 'px; width:' + Width + 'px;"><span class="signImg"></span><span class="signerName" style="display:none;"></span></div>');
+                    $('#draggableDiv_' + 1 + '_' + (i + 1) + '').draggable({ containment: "#page_" + PageNumberDetails[i], disabled: false, scroll: false, stop: function () { UpdateCoordinates(this); } });
+                    $('#draggableDiv_' + 1 + '_' + (i + 1) + '').resizable({ containment: "#page_" + PageNumberDetails[i], maxHeight: 250, maxWidth: 350, minHeight: 60, minWidth: 120, disabled: false, scroll: false, stop: function () { UpdateCoordinates(this); } });
+                }
+            }
+            $('.Signatory' + 1).draggable({ disabled: false }).resizable({ disabled: false });
+            Top = $('.documentVisual img').height() - Top;
+            Height = (Number(Top) - Number(Height));
+            Width = (Number(Left) + Number(Width));
+
+            Coordinates = Left + ',' + Top + ',' + Width + ',' + Height;
+            updCord = "true";
+            $("#hdnCoordinates").val(Coordinates);
+            customselectPage = "true";
+        }
+        $(".delSigner").on("click", function () {
+            var Id = $(this).attr('id');
+            var SignerLength = 2;
+            var Final_Li_Length = SignerLength - 1;
+            if (Final_Li_Length == 1) {
+                $('#btnmsgok').removeAttr('onClick');
+                $("#btnmsgcancel").hide();
+                $("#msgcontent").attr("class", "info");
+                $('#msgcontent').html("Atleast one signatory is required to Sign a document.");
+                $(".alertWindow").css({ 'display': "block" });
+                $('#btnmsgok').attr('onclick', "");
+                $('#btnmsgok').attr("href", "javascript:Returncontrol('Y','');");
+                return false;
+            }
+            //var CID = $(this).attr("id").split("_")[1];
+            //$('#btnmsgok').removeAttr('onClick');
+            //$("#msgcontent").attr("class", "info");
+            //$('#msgcontent').html(Doyoureallywanttodelete);
+            //$("#btnmsgcancel").show();
+            //$("#btnmsgcancel").attr('onclick', "javascript:Returncontrol('Y','');");
+            //$(".alertWindow").css({ 'display': "block" });
+            //$('#btnmsgok').attr('href', "javascript:DeleteSigner(" + CID + ");");
+            //return false;
+        });
+
+        if (ValidateAllPlaceholders == "True") {
+            GetAllPlaceholdersID();
+        }
+
+    });
+
+    $("#btnApply").on("click", function () {
+        Specifyval = 1;
+        if ($('#txtPageNumber').val() == "") {
+            $("#btnmsgcancel").hide();
+            $("#msgcontent").attr("class", "info");
+            $('#msgcontent').html("Enter Pageno");
+            $(".alertWindow").css({ 'display': "block" });
+            $('#btnmsgok').attr("href", "javascript:Returncontrol('Y','');");
+            return false;
+        }
+        var Noofpages = $('.documentVisual').length;
+        var csvPageNumbers = $('#txtPageNumber').val().split(',');
+        $("#hdnPageNumber").val(csvPageNumbers);
+        for (i = 0; i < csvPageNumbers.length; i++) {
+            if (csvPageNumbers[i] != "") {
+                if (csvPageNumbers[i] > Noofpages) {
+                    $("#btnmsgcancel").hide();
+                    $("#msgcontent").attr("class", "info");
+                    $('#msgcontent').html("Enter valid page no");
+                    $(".alertWindow").css({ 'display': "block" });
+                    $('#btnmsgok').attr("href", "javascript:Returncontrol('Y','');");
+                    return false;
+                }
+            }
+        }
+        var selectedSignaturePosition = $('#ddlSignaturePosition option:selected').val();
+        var PageNo = $('#ddlPageSelection option:selected').val();
+        var Width, Height, Left, top, Top;
+        if (selectedSignaturePosition == "CUSTOMIZE") {
+            $('#txtRight, #txtHeight, #txtWidth, #txtLeft').attr('disabled', true);
+            var pageNumbers = $('#txtPageNumber').val().split(',');
+            if (PageNo != "PAGE LEVEL") {
+                if ($(".dragDiv").length > 0) {
+                    Left = defaultLeftPxValue; TopDetails = $('.documentVisual img').height() - defaultTopPxValue; Height = 60; Width = 120;
+                    Top = $('.documentVisual img').height() - TopDetails;
+
+                    var id = $('#draggableDiv_' + 1 + '_' + 1)[0];
+                    var Width = parseInt(id.offsetWidth);
+                    var Height = parseInt(id.offsetHeight);
+                    var Left = id.offsetLeft;
+                    var Top = id.offsetTop;
+
+                    //var id = $('#draggableDiv_' + 1 + '_' + 1)[0];
+                    //var Width = parseInt(id.offsetWidth);
+                    //var Height = parseInt(id.offsetHeight);
+                    //var Left = id.offsetLeft;
+                    //var top = id.offsetTop;
+                    $(".Signatory" + 1 + "").remove();
+                    for (i = 0; i < csvPageNumbers.length; i++) {
+                        $('#page_' + csvPageNumbers[i]).append('<div id="draggableDiv_' + 1 + '_' + (i + 1) + '" class="dragDiv Signatory' + 1 + '" style="left:' + Left + 'px; top:' + Top + 'px; height:' + Height + 'px; width:' + Width + 'px;"><span class="signImg"></span><span class="signerName" style="display:none;"></span></div>');
+                        $('#draggableDiv_' + 1 + '_' + (i + 1) + '').draggable({ containment: "#page_" + csvPageNumbers[i], disabled: false, scroll: false, stop: function () { UpdateCoordinates(this); } });
+                        $('#draggableDiv_' + 1 + '_' + (i + 1) + '').resizable({ containment: "#page_" + csvPageNumbers[i], maxHeight: 250, maxWidth: 350, minHeight: 60, minWidth: 120, disabled: false, scroll: false, stop: function () { UpdateCoordinates(this); } });
+                    }
+                }
+                else {
+                    Left = 7; TopDetails = 839; Height = 777; Width = 129;
+                    Top = $('.documentVisual img').height() - TopDetails;
+                    for (i = 0; i < pageNumbers.length; i++) {
+                        $('#page_' + csvPageNumbers[i]).append('<div id="draggableDiv_' + 1 + '_' + (i + 1) + '" class="dragDiv Signatory' + 1 + '" style="left:' + Left + 'px; top:' + Top + 'px; height:' + Height + 'px; width:' + Width + 'px;"><span class="signImg"></span><span class="signerName" style="display:none;"></span></div>');
+                        $('#draggableDiv_' + 1 + '_' + (i + 1) + '').draggable({ containment: "#page_" + csvPageNumbers[i], disabled: false, scroll: false, stop: function () { UpdateCoordinates(this); } });
+                        $('#draggableDiv_' + 1 + '_' + (i + 1) + '').resizable({ containment: "#page_" + csvPageNumbers[i], maxHeight: 250, maxWidth: 350, minHeight: 60, minWidth: 120, disabled: false, scroll: false, stop: function () { UpdateCoordinates(this); } });
+                    }
+                }
+
+                Top = $('.documentVisual img').height() - Top;
+                Height = (Number(Top) - Number(Height));
+                Width = (Number(Left) + Number(Width));
+
+                Coordinates = Left + ',' + Top + ',' + Width + ',' + Height;
+                updCord = "true";
+                $("#hdnCoordinates").val(Coordinates);
+                //$("#ddlSignaturePosition").val("CUSTOMIZE");
+                $("#hdnPageNumber").val(pageNumbers);
+                customselectPage = "true";
+            }
+            else {
+                $('.dragDiv').draggable({ containment: "#signerContainment", scroll: false, stop: function () { UpdateCoordinates(this); } });
+                $('.dragDiv').resizable({ containment: "#page_1", maxHeight: 250, maxWidth: 350, minHeight: 60, minWidth: 120, stop: function () { UpdateCoordinates(this); } });
+            }
+
+        }
+        else {
+            $(".dragDiv").remove();
+            prHeight = $('.documentVisual img').height();
+            var actualPageHeight = $('.documentVisual img')[0].offsetHeight;
+            if (selectedSignaturePosition == "Top-Left") {
+                Left = defaultLeftPxValue; TopDetails = actualPageHeight - defaultTopPxValue; Height = 60; Width = 120;
+                Top = $('.documentVisual img').height() - TopDetails;
+                $("#txtLeft").val(Left);
+                $("#txtTop").val(TopDetails);
+                $("#txtHeight").val(Height);
+                $("#txtWidth").val(Width);
+            }
+            else if (selectedSignaturePosition == "Top-Center") {
+                $("#draggableDiv_1").remove();
+                Left = ((($('.documentVisual img')[0].offsetWidth / 2) - (defaultWidthPxValue / 2)) + defaultLeftPxValue) + $('.documentVisual img')[0].offsetLeft;
+                TopDetails = actualPageHeight - defaultTopPxValue; Height = 60; Width = 120;
+                Top = $('.documentVisual img').height() - TopDetails;
+                $("#txtLeft").val(Left);
+                $("#txtTop").val(TopDetails);
+                $("#txtHeight").val(Height);
+                $("#txtWidth").val(Width);
+            }
+            else if (selectedSignaturePosition == "Top-Right") {
+                $("#draggableDiv_1").remove();
+                Left = (($('.documentVisual img')[0].offsetWidth - defaultWidthPxValue) - defaultLeftPxValue) - $('.documentVisual img')[0].offsetLeft;
+                TopDetails = actualPageHeight - defaultTopPxValue; Height = 60; Width = 120;
+                Top = $('.documentVisual img').height() - TopDetails;
+                $("#txtLeft").val(Left);
+                $("#txtTop").val(TopDetails);
+                $("#txtHeight").val(Height);
+                $("#txtWidth").val(Width);
+            }
+            else if (selectedSignaturePosition == "Middle-Left") {
+                $("#draggableDiv_1").remove();
+                Left = defaultLeftPxValue; TopDetails = (Number(prHeight) + defaultHeightPxValue) / 2; Height = 60; Width = 120;
+
+                Top = $('.documentVisual img').height() - TopDetails;
+                $("#txtLeft").val(Left);
+                $("#txtTop").val(TopDetails);
+                $("#txtHeight").val(Height);
+                $("#txtWidth").val(Width);
+            }
+            else if (selectedSignaturePosition == "Middle-Center") {
+                $("#draggableDiv_1").remove();
+                Left = ((($('.documentVisual img')[0].offsetWidth / 2) - (defaultWidthPxValue / 2)) + defaultLeftPxValue) + $('.documentVisual img')[0].offsetLeft;
+                TopDetails = (Number(prHeight) + defaultHeightPxValue) / 2; Height = 60; Width = 120;
+                Top = $('.documentVisual img').height() - TopDetails;
+                $("#txtLeft").val(Left);
+                $("#txtTop").val(TopDetails);
+                $("#txtHeight").val(Height);
+                $("#txtWidth").val(Width);
+            }
+            else if (selectedSignaturePosition == "Middle-Right") {
+                $("#draggableDiv_1").remove();
+                Left = (($('.documentVisual img')[0].offsetWidth - defaultWidthPxValue) - defaultLeftPxValue) - $('.documentVisual img')[0].offsetLeft;
+                TopDetails = (Number(prHeight) + defaultHeightPxValue) / 2; Height = 60; Width = 120;
+                Top = $('.documentVisual img').height() - TopDetails;
+                $("#txtLeft").val(Left);
+                $("#txtTop").val(TopDetails);
+                $("#txtHeight").val(Height);
+                $("#txtWidth").val(Width);
+            }
+            else if (selectedSignaturePosition == "Bottom-Left") {
+                $("#draggableDiv_1").remove();
+                Left = defaultLeftPxValue;
+                TopDetails = defaultHeightPxValue + defaultBottomPxValue; Height = 60; Width = 120;
+                Top = $('.documentVisual img').height() - TopDetails;
+                $("#txtLeft").val(Left);
+                $("#txtTop").val(TopDetails);
+                $("#txtHeight").val(Height);
+                $("#txtWidth").val(Width);
+            }
+            else if (selectedSignaturePosition == "Bottom-Center") {
+                $("#draggableDiv_1").remove();
+                Left = ((($('.documentVisual img')[0].offsetWidth / 2) - (defaultWidthPxValue / 2)) + defaultLeftPxValue) + $('.documentVisual img')[0].offsetLeft;
+                TopDetails = defaultHeightPxValue + defaultBottomPxValue; Height = 60; Width = 120;
+                Top = $('.documentVisual img').height() - TopDetails;
+                $("#txtLeft").val(Left);
+                $("#txtTop").val(TopDetails);
+                $("#txtHeight").val(Height);
+                $("#txtWidth").val(Width);
+            }
+            else if (selectedSignaturePosition == "Bottom-Right") {
+                $("#draggableDiv_1").remove();
+                Left = (($('.documentVisual img')[0].offsetWidth - defaultWidthPxValue) - defaultLeftPxValue) - $('.documentVisual img')[0].offsetLeft;
+                TopDetails = defaultHeightPxValue + defaultBottomPxValue; Height = 60; Width = 120;
+                Top = $('.documentVisual img').height() - TopDetails;
+                $("#txtLeft").val(Left);
+                $("#txtTop").val(TopDetails);
+                $("#txtHeight").val(Height);
+                $("#txtWidth").val(Width);
+            }
+            var pageNumbers = $('#txtPageNumber').val().split(',');
+            for (i = 0; i < pageNumbers.length; i++) {
+                $('#page_' + pageNumbers[i]).append('<div id="draggableDiv_' + 1 + '_' + (i + 1) + '" class="dragDiv Signatory' + 1 + '" style="left:' + Left + 'px; top:' + Top + 'px; height:' + Height + 'px; width:' + Width + 'px;"><span class="signImg"></span><span class="signerName" style="display:none;"></span></div>');
+                $('#draggableDiv_' + 1 + '_' + (i + 1) + '').draggable({ containment: "#page_" + csvPageNumbers[i], disabled: false, scroll: false, stop: function () { UpdateCoordinates(this); } });
+                $('#draggableDiv_' + 1 + '_' + (i + 1) + '').resizable({ containment: "#page_" + csvPageNumbers[i], maxHeight: 250, maxWidth: 350, minHeight: 60, minWidth: 120, disabled: false, scroll: false, stop: function () { UpdateCoordinates(this); } });
+            }
+            //$('.dragDiv').draggable({ containment: "#signerContainment", scroll: false, stop: function () { UpdateCoordinates1(this); } });
+            Top = $('.documentVisual img').height() - Top;
+            Height = (Number(Top) - Number(Height));
+            Width = (Number(Left) + Number(Width));
+
+            Coordinates = Left + ',' + Top + ',' + Width + ',' + Height;
+            updCord = "true";
+            $("#hdnCoordinates").val(Coordinates);
+            //$("#ddlSignaturePosition").val("CUSTOMIZE");
+            $("#hdnPageNumber").val(pageNumbers);
+            customselectPage = "true";
+        }
+
+        $(".delSigner").on("click", function () {
+            var Id = $(this).attr('id');
+            var SignerLength = 2;
+            var Final_Li_Length = SignerLength - 1;
+            if (Final_Li_Length == 1) {
+                $('#btnmsgok').removeAttr('onClick');
+                $("#btnmsgcancel").hide();
+                $("#msgcontent").attr("class", "info");
+                $('#msgcontent').html("Atleast one signatory is required to Sign a document.");
+                $(".alertWindow").css({ 'display': "block" });
+                $('#btnmsgok').attr('onclick', "");
+                $('#btnmsgok').attr("href", "javascript:Returncontrol('Y','');");
+                return false;
+            }
+            //var CID = $(this).attr("id").split("_")[1];
+            //$('#btnmsgok').removeAttr('onClick');
+            //$("#msgcontent").attr("class", "info");
+            //$('#msgcontent').html(Doyoureallywanttodelete);
+            //$("#btnmsgcancel").show();
+            //$("#btnmsgcancel").attr('onclick', "javascript:Returncontrol('Y','');");
+            //$(".alertWindow").css({ 'display': "block" });
+            //$('#btnmsgok').attr('href', "javascript:DeleteSigner(" + CID + ");");
+            //return false;
+        });
+
+        if (ValidateAllPlaceholders == "True") {
+            GetAllPlaceholdersID();
+        }
+
+    });
+
+    function CreatePageLevelSignatory() {
+        var currentId = 1;
+        var Height = 60, Width = 120;
+        var arr = $('.Signatory' + currentId + '').length;
+        if (arr == 0) {
+            var Top, Left, width, Height, id, sLeft, sTop;
+            id = 1;
+            Left = 0; Top = 0; Height = 60; width = 120;
+            if (arr == 0) {
+                Left = 10; Top = 10; Height = 60; width = 120;
+            }
+            for (i = 0, l = arr; i < l; i++) {
+                if (Left > 450) {
+                    Left = Left;
+                    Top = Top;
+                } else {
+                    Left = Left + 10;
+                    Top = Top + 10;
+                }
+                id = id + 1;
+            }
+            //var Configdetails = $("#hdnPagelevelCordinates").val().split(';');
+            //for (i = 0; i < Configdetails.length; i++) {
+            //    var coordinates = Configdetails[i].split(',');
+            //    var Left = coordinates[1], Top = coordinates[2], Width = coordinates[3], Height = coordinates[4];
+            //    var FinalTop = $('.documentVisual img').height() - Top;
+            //    var height = (Number(Top) - Number(Height)) - 2;
+            //    var width = (Number(Width) - Number(Left)) - 2;
+            //    for (var k = 0; k < coordinates[0].length; k++)
+            //    {
+            //        $('#page_' + coordinates[0]).append('<div id="draggableDiv_' + currentId + '_' + coordinates[0] + '" class="dragDiv Signatory' + currentId + '" style="left:' + Left + 'px; top:' + FinalTop + 'px;  height:' + height + 'px; width:' + width + 'px;"><span class="signImg"></span><span class="signerName" style="display:none;"></span></div>');
+            //        $('draggableDiv_' + currentId + '_' + coordinates[0]).draggable({ containment: "#signerContainment", scroll: false, stop: function () { UpdateCoordinates(this); } });
+            //        $('draggableDiv_' + currentId + '_' + coordinates[0]).resizable({ containment: "#signerContainment", maxHeight: 250, maxWidth: 350, minHeight: 60, minWidth: 120, stop: function () { UpdateCoordinates(this); } });
+            //        $('#SignerPageLevels').append('<div class="PageLevelSignerNameRowPrep" id="PlistItem_' + id + '"><div class="prepContainer col1"><a class="searchsName" id="fieldlinkPage_' + id + '" href="javascript:void(0);"><span class="searchIco"></span></a> <span class="signerName" id="signerName_' + id + '" href="javascript:void(0);"><span class="displaySigner">' + name + '(S' + id + ')' + '</span></span> </div><div class="prepContainer col2"><select class="pageSelValue valid" name="fieldPagination_' + id + '" id="fieldPagination_' + id + '" ></select></div><div class="prepContainer col3"><a class="actionButton" href="javascript:void(0);"><span class="delImgPL" id="DeleteSigners_' + currentId + '_' + id + '"></span></a></div></div>');
+            //    }
+            //}
+
+            //$('#page_1').append('<div id="draggableDiv_' + currentId + '_' + id + '" class="dragDiv Signatory' + currentId + '" style="left:' + Left + 'px; top:' + Top + 'px;"><span class="number">' + currentId + '</span><span class="signImg"></span><span class="signerName" style="display:none;"></span><a href="javascript:void(0);" id="DeleteSigners_' + currentId + '_' + id + '" class="delSignerPL" title="Delete"><span></span></a></div>');
+            // $('#page_1').append('<div id="draggableDiv_' + currentId + '_' + id + '" class="dragDiv Signatory' + currentId + '" style="left:' + Left + 'px; top:' + Top + 'px;  height:' + Height + 'px; width:' + Width + 'px;"><span class="signImg"></span><span class="signerName" style="display:none;"></span></div>');
+            //$('draggableDiv_' + currentId + '_' + id).draggable({ containment: "#signerContainment", scroll: false, stop: function () { UpdateCoordinates(this); } });
+            //$('draggableDiv_' + currentId + '_' + id).resizable({ containment: "#signerContainment", maxHeight: 250, maxWidth: 350, minHeight: 60, minWidth: 120, stop: function () { UpdateCoordinates(this); } });
+            $('#page_1').append('<div id="draggableDiv_' + currentId + '_' + id + '" class="dragDiv Signatory' + currentId + '" style="left:' + Left + 'px; top:' + Top + 'px;"><span class="signImg"></span><span class="signerName" style="display:none;"></span><a href="javascript:void(0);" id="DeleteSigners_' + currentId + '_' + id + '" class="delSignerPL" title="Delete"><span><i class="fa fa-remove"></i></span></a><p class="email">(S' + id + ')</p></div>');
+            $('.dragDiv').draggable({ containment: "#signerContainment", scroll: false, stop: function () { UpdateCoordinates(this); } });
+            $('.dragDiv').resizable({ containment: "#signerContainment", maxHeight: 250, maxWidth: 350, minHeight: 60, minWidth: 120, stop: function () { UpdateCoordinates(this); } });
+            //$('#SignerPageLevels').append('<div class="PageLevelSignerNameRowPrep" id="PlistItem_' + id + '"><div class="prepContainer col1"><a class="searchsName" id="fieldlinkPage_' + id + '" href="javascript:void(0);"><span class="searchIco"></span></a>  </div><div class="prepContainer col2"><select class="pageSelValue valid" name="fieldPagination_' + id + '" id="fieldPagination_' + id + '" ></select></div><div class="prepContainer col3"><a class="actionButton" href="javascript:void(0);"><span class="delImgPL" id="DeleteSigners_' + currentId + '_' + id + '"></span></a></div></div>');
+            $('#SignerPageLevels').append('<div class="PageLevelSignerNameRowPrep" id="PlistItem_' + id + '"><div class="prepContainer col1"><span class="signerName" id="signerName_' + id + '"><span class="displaySigner">(S' + id + ')</span></span> </div><div class="prepContainer col2"><select class="pageSelValue1 valid" name="fieldPagination_' + id + '" id="fieldPagination_' + id + '" ></select></div><div class="prepContainer col3"><a class="actionButton" href="javascript:void(0);"><span class="delImgPL" id="DeleteSigners_' + currentId + '_' + id + '"><i class="fa fa-remove"></i></span></a></div></div>');
+
+
+
+            var p = $('.documentVisual').length;
+            for (i = 1; i <= p; i++) {
+                $("#fieldPagination_" + id).append("<option value=" + i + ">" + i + "</option>");
+            }
+            var signatorylength = $(".Signatory" + currentId).length;
+            var config = "";
+            for (i = 1; i <= signatorylength; i++) {
+                var Page = $('#fieldPagination_' + i + ' option:selected').val();
+                var id1 = $('#draggableDiv_' + currentId + '_' + i)[0];
+                var Width = id1.offsetWidth;
+                var Height = id1.offsetHeight;
+                var Left = id1.offsetLeft;
+                var Top = id1.offsetTop;
+                Top = $('.documentVisual img').height() - Top;
+                Height = (Number(Top) - Number(Height));
+                Width = (Number(Left) + Number(Width));
+                config += Page + ',' + Left + ',' + Top + ',' + Width + ',' + Height + ';';
+
+                Coordinates = Page + ',' + Left + ',' + Top + ',' + Width + ',' + Height;
+                updCord = "true";
+                customselectPage = "true";
+            }
+            config = config.substring(0, config.length - 1);
+            var pageNumbers = config;
+            $("#hdnPagelevelCordinates").val(pageNumbers);
+            $("#hdnCoordinates").val(pageNumbers);
+            $('#draggableDiv_' + currentId + '_' + id + '').draggable({ disabled: false }).resizable({ disabled: false });
+
+        }
+        else {
+            var Top, Left, width, Height, id, sLeft, sTop;
+            id = 1;
+            Left = 0; Top = 0; Height = 60; width = 120;
+            if (arr == 0) {
+                Left = 10; Top = 10; Height = 60; width = 120;
+            }
+            for (i = 0, l = arr; i < l; i++) {
+                if (Left > 450) {
+                    Left = Left;
+                    Top = Top;
+                } else {
+                    Left = Left + 15;
+                    Top = Top + 15;
+                }
+                id = id + 1;
+            }
+
+            //$('#page_1').append('<div id="draggableDiv_' + currentId + '_' + id + '" class="dragDiv Signatory' + currentId + '" style="left:' + Left + 'px; top:' + Top + 'px;"><span class="number">' + currentId + '</span><span class="signImg"></span><span class="signerName" style="display:none;"></span><a href="javascript:void(0);" id="DeleteSigners_' + currentId + '_' + id + '" class="delSignerPL" title="Delete"><span></span></a><p class="email">' + name + '(S' + id + ')' + '</p></div>');
+            $('#page_1').append('<div id="draggableDiv_' + currentId + '_' + id + '" class="dragDiv Signatory' + currentId + '" style="left:' + Left + 'px; top:' + Top + 'px; height:' + Height + 'px; width:' + Width + 'px;"><span class="signImg"></span><span class="signerName" style="display:none;"></span><a href="javascript:void(0);" id="DeleteSigners_' + currentId + '_' + id + '" class="delSignerPL" title="Delete"><span><i class="fa fa-remove"></i></span></a><p class="email">(S' + id + ')</p></div>');
+            //$('draggableDiv_' + currentId + '_' + id).draggable({ containment: "#signerContainment", scroll: false, stop: function () { UpdateCoordinates1(this); } });
+            //$('draggableDiv_' + currentId + '_' + id).resizable({ containment: "#signerContainment", maxHeight: 250, maxWidth: 350, minHeight: 60, minWidth: 120, stop: function () { UpdateCoordinates1(this); } });
+            $('.dragDiv').draggable({ containment: "#signerContainment", scroll: false, stop: function () { UpdateCoordinates(this); } });
+            $('.dragDiv').resizable({ containment: "#signerContainment", maxHeight: 250, maxWidth: 350, minHeight: 60, minWidth: 120, stop: function () { UpdateCoordinates(this); } });
+            //$('#SignerPageLevels').append('<div class="PageLevelSignerNameRowPrep" id="PlistItem_' + id + '"><div class="prepContainer col1"><a class="searchsName" id="fieldlinkPage_' + id + '" href="javascript:void(0);"><span class="searchIco"></span></a>  </div><div class="prepContainer col2"><select class="pageSelValue valid" name="fieldPagination_' + id + '" id="fieldPagination_' + id + '" ></select></div><div class="prepContainer col3"><a class="actionButton" href="javascript:void(0);"><span class="delImgPL" id="DeleteSigners_' + currentId + '_' + id + '"></span></a></div></div>');
+            $('#SignerPageLevels').append('<div class="PageLevelSignerNameRowPrep" id="PlistItem_' + id + '"><div class="prepContainer col1"><span class="signerName" id="signerName_' + id + '"><span class="displaySigner">(S' + id + ')</span></span> </div><div class="prepContainer col2"><select class="pageSelValue1 valid" name="fieldPagination_' + id + '" id="fieldPagination_' + id + '" ></select></div><div class="prepContainer col3"><a class="actionButton" href="javascript:void(0);"><span class="delImgPL" id="DeleteSigners_' + currentId + '_' + id + '"><i class="fa fa-remove"></i></span></a></div></div>');
+            var p = $('.documentVisual').length;
+            for (i = 1; i <= p; i++) {
+                $("#fieldPagination_" + id).append("<option value=" + i + ">" + i + "</option>");
+            }
+            var sL = $("#SignerPageLevels .PageLevelSignerNameRowPrep").length;
+            if (sL > 3) { $("#SignerPageLevels").addClass("scrollSigner3Item"); } else { $("#SignerPageLevels").removeClass("scrollSigner3Item"); }
+            var signatorylength = $(".Signatory" + currentId).length;
+            var config = "";
+            for (i = 1; i <= signatorylength; i++) {
+                var Page = $('#fieldPagination_' + i + ' option:selected').val();
+                var id1 = $('#draggableDiv_' + currentId + '_' + i)[0];
+                var Width = id1.offsetWidth;
+                var Height = id1.offsetHeight;
+                var Left = id1.offsetLeft;
+                var Top = id1.offsetTop;
+                Top = $('.documentVisual img').height() - Top;
+                Height = (Number(Top) - Number(Height));
+                Width = (Number(Left) + Number(Width));
+                config += Page + ',' + Left + ',' + Top + ',' + Width + ',' + Height + ';';
+
+
+
+                Coordinates = Page + ',' + Left + ',' + Top + ',' + Width + ',' + Height;
+                updCord = "true";
+                customselectPage = "true";
+            }
+
+            config = config.substring(0, config.length - 1);
+            var pageNumbers = config;
+            $("#hdnPagelevelCordinates").val(pageNumbers);
+            $("#hdnCoordinates").val(pageNumbers);
+            $('#draggableDiv_' + currentId + '_' + id + '').draggable({ disabled: false }).resizable({ disabled: false });
+
+
+        }
+
+        $(".documentVisual").each(function () {
+            var n = $(this).attr("id"),
+                t = n.split("_")[1].toString();
+            $(this).droppable({
+                accept: ".dragDiv",
+                drop: function (n, t) {
+                    var a, v, r, i, o;
+                    if ((i = $(this).attr("id").split("_")[1], r != i)) {
+                        var w = t.draggable.html(),
+                            e = "#" + t.draggable.attr("id"),
+                            s = $("#page_" + i).offset().left,
+                            y = $("#page_" + i).offset().top,
+                            p = $(e).offset().left,
+                            h = $(e).offset().top,
+                            c = parseInt(p) - parseInt(s),
+                            l = parseInt(h) - parseInt(y);
+                        $(e).appendTo($("#page_" + i)),
+                            $(e).css("left", c + "px"), $(e).css("top", l + "px"),
+                            o = t.draggable.attr("id").split("_")[2],
+                            $("#fieldPagination_" + o).val(i);
+                    }
+                }
+            })
+        })
+
+        $('body').on('change', '.pageSelValue1', function () {
+            var currentid = 1;
+            var r = $(this).attr("id"),
+                t = $(this).val(),
+                n = r.split("_")[1],
+                i = "#page_" + t;
+            $("#draggableDiv_" + n).appendTo($(i));
+            $("#draggableDiv_" + currentid + '_' + n).appendTo($(i));
+            f = $(i).offset().top + $("#documentViewContent").scrollTop() - 120;
+            $("#documentViewContent").animate({
+                scrollTop: f
+            }, "slow")
+            if (typeof (n) != "undefined") {
+                var arr = Array();
+                $('.SignerNameRowPrep').each(function () {
+                    arr.push($(this).attr('id').replace('listItem_', ''));
+                });
+            }
+        });
+
+        $(".delSignerPL, .delImgPL").on("click", function () {
+            var id = $(this).attr('id');
+            var currentId = 1;
+            var arr = [];
+            $('.Signatory' + currentId + '').each(function (index, elem) {
+                arr.push($(this).attr('id'));
+            });
+            if (arr.length == 1) {
+                $("#btnmsgcancel").hide();
+                $("#msgcontent").attr("class", "info");
+                $('#msgcontent').html("At least one signatory is required.");
+                $(".alertWindow").css({ 'display': "block" });
+                $('#btnmsgok').attr("href", "javascript:Returncontrol('Y','');");
+                return false;
+            }
+            var Id = $(this).attr('id');
+            var DivId = Id.split('_')[2];
+            $("#msgcontent").attr("class", "info");
+            $('#msgcontent').html("Do you really want to delete?");
+            $("#btnmsgcancel").show();
+            $("#btnmsgcancel").attr('onclick', "javascript:Returncontrol('Y','');");
+            $(".alertWindow").css({ 'display': "block" });
+            $('#btnmsgok').attr('href', "javascript:DeletePageLevelSigner(" + DivId + ");");
+
+            var sL = $("#SignerPageLevels .PageLevelSignerNameRowPrep").length;
+            if (sL > 3) { $("#SignerPageLevels").addClass("scrollSigner3Item"); } else { $("#SignerPageLevels").removeClass("scrollSigner3Item"); }
+
+            return false;
+        });
+
+        if (ValidateAllPlaceholders == "True") {
+            GetAllPlaceholdersID();
+        }
+
+    }
+
+});
+$("#txtPageNumber").bind('keypress', function (event) {
+    Specifyval = 0;
+});
+$("#txtPageNumber").on('blur', function (e) {
+    Specifyval = 0;
+    var pattern = /^([1-9][0-9]{0,3}|10000)(,([1-9][0-9]{0,3}|10000))*$/;
+    var testvalue = $("#txtPageNumber").val();
+    if (testvalue == "") {
+        $("#txtSpecify").val("");
+        $("#btnmsgcancel").hide();
+        $("#msgcontent").attr("class", "info");
+        $('#msgcontent').html("Enter Pageno");
+        $(".alertWindow").css({ 'display': "block" });
+        $('#btnmsgok').attr("href", "javascript:Returncontrol('Y','');");
+        return false;
+    }
+    if (!pattern.test(testvalue)) {
+        $("#txtPageNumber").val("");
+        $("#btnmsgcancel").hide();
+        $("#msgcontent").attr("class", "info");
+        $('#msgcontent').html("Enter valid page no");
+        $(".alertWindow").css({ 'display': "block" });
+        $('#btnmsgok').attr("href", "javascript:Returncontrol('Y','');");
+        return false;
+    }
+});
+function DeletePageLevelSigner(DivId) {
+    var currentId = 1;
+    $('#draggableDiv_' + currentId + '_' + DivId).remove();
+    $('#PlistItem_' + DivId).remove();
+    var Ids = Array();
+    $('.Signatory' + currentId + '').each(function () {
+        Ids.push($(this).attr('id').replace('draggableDiv_', ''));
+    });
+    for (i = 0; i < Ids.length; i++) {
+        $("#PlistItem_" + Ids[i].split('_')[1]).attr('id', 'PlistItem_' + (i + 1));
+        $("#signerName_" + Ids[i].split('_')[1]).attr('id', 'signerName_' + (i + 1));
+        if ($('#PagelevelName').val() != "") {
+            //$("#PlistItem_" + (i + 1) + " .displaySigner").text($('#PagelevelName').val() + '(S' + (i + 1) + ')');
+            $("#PlistItem_" + (i + 1) + " .displaySigner").text('(S' + (i + 1) + ')');
+        }
+        else {
+            $("#PlistItem_" + (i + 1) + " .displaySigner").text('(S' + (i + 1) + ')');
+        }
+        $("#PlistItem_" + (i + 1) + " .delImgPL").attr('id', 'DeleteSigners_' + currentId + '_' + (i + 1));
+        $("#fieldlinkPage_" + Ids[i].split('_')[1]).attr('id', 'fieldlinkPage_' + (i + 1));
+        $("#fieldPagination_" + Ids[i].split('_')[1]).attr('id', 'fieldPagination_' + (i + 1));
+        $("#fieldPagination_" + (i + 1)).attr('name', 'fieldPagination_' + (i + 1));
+        $("#draggableDiv_" + Ids[i]).attr('id', 'draggableDiv_' + currentId + '_' + (i + 1));
+        $("#draggableDiv_" + currentId + '_' + (i + 1) + " .delSignerPL").attr('id', 'DeleteSigners_' + currentId + '_' + (i + 1));
+        $("#draggableDiv_" + currentId + '_' + (i + 1) + " .number").text(currentId);
+        //$("#draggableDiv_" + currentId + '_' + (i + 1) + " .email").text("Signatory " + currentId + '(S' + (i + 1) + ')');
+        $("#draggableDiv_" + currentId + '_' + (i + 1) + " .email").text('(S' + (i + 1) + ')');
+    }
+    $(".alertWindow").hide();
+    //var sL = $("#SignerPageLevels .PageLevelSignerNameRowPrep").length;
+    //if (sL > 3) { $("#SignerPageLevels").addClass("plScroll"); } else { $("#SignerPageLevels").removeClass("plScroll"); }
+    var sL = $("#SignerPageLevels .PageLevelSignerNameRowPrep").length;
+    if (sL > 3) { $("#SignerPageLevels").addClass("scrollSigner3Item"); } else { $("#SignerPageLevels").removeClass("scrollSigner3Item"); }
+    var DocID = $("#hdnDocumentNumber").val();
+    var Value = $("#hdnSavedConfig_" + DocID).val();
+    if (Value != "") {
+        var signatorylength = $(".Signatory" + currentId).length;
+        var config = "";
+        for (i = 1; i <= signatorylength; i++) {
+            var Page = $('#fieldPagination_' + i + ' option:selected').val();
+            var id = $('#draggableDiv_' + currentId + '_' + i)[0];
+            var Width = id.offsetWidth;
+            var Height = id.offsetHeight;
+            var Left = id.offsetLeft;
+            var Top = id.offsetTop;
+            Top = $('.documentVisual img').height() - Top;
+            Height = (Number(Top) - Number(Height));
+            Width = (Number(Left) + Number(Width));
+            config += Page + ',' + Left + ',' + Top + ',' + Width + ',' + Height + ';';
+        }
+        config = config.substring(0, config.length - 1);
+        var PageLevelValue = config;
+        var FinalValue = "-1_0_empty_All_CUSTOMIZE_" + PageLevelValue + "_ _ _ _ _PAGE LEVEL_1_1";
+        $("#hdnconfig_" + DocID + "_" + currentId + "").val(FinalValue);
+        var count = $(".configdetails" + DocID + "").length;
+
+        updCord = "true";
+        customselectPage = "true";
+        $("#hdnPagelevelCordinates").val(PageLevelValue);
+        $("#hdnCoordinates").val(PageLevelValue);
+
+        //var FinalConfigDetails = "";
+        //for (var j = 0; j < count; j++) {
+        //    FinalConfigDetails += $("#hdnconfig_" + DocID + "_" + (j + 1) + "").val() + "@";
+        //}
+        //$("#hdnSavedConfig_" + DocID).val(FinalConfigDetails);
+
+    }
+    if (ValidateAllPlaceholders == "True") {
+        GetAllPlaceholdersID();
+    }
+}

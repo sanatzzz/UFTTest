@@ -1,0 +1,11 @@
+[t25]
+FileName1=t25_flags.png
+URL1=https://cdn.jsdelivr.net/npm/intl-tel-input@18.2.1/build/img/flags.png?1
+Total=1
+ContentType=image/png
+SnapshotXmlFile=snapshot_25.xml
+RequestHeaderFile=t25_RequestHeader.txt
+RequestBodyFile=NONE
+ResponseHeaderFile=t25_ResponseHeader.txt
+[ProtocolInfo]
+ProtocolId=QTWeb
