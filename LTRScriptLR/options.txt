@@ -1,9 +1,0 @@
--+
--DCCI
--D_IDA_XL
--DWINNT
--IC:\Users\SanShetty\Desktop\Booking-LTnT
--IC:\Program Files (x86)\Micro Focus\Virtual User Generator\include
--ec:\users\sanshetty\desktop\booking-ltnt\\logfile.log
-c:\users\sanshetty\desktop\booking-ltnt\\combined_Booking-LTnT.c
-c:\users\sanshetty\desktop\booking-ltnt\\pre_cci.c

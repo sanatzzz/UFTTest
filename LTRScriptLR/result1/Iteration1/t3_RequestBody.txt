@@ -1,2 +1,0 @@
-"{"applicant_details":[{"Applicant_Type":"Individual","Applicant_Position":"A1","customerid":"c"
-"ust1005","id":"0060o00001eSIJ0AAO"}]}"

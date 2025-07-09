@@ -1,9 +1,0 @@
-HTTP/2.0 200
-Status: 200
-date: Fri, 16 Feb 2024 11:07:19 GMT
-content-type: text/html;charset=ISO-8859-1
-content-length: 4483
-access-control-allow-origin: *
-set-cookie: JSESSIONID=B8B9DE2405817D6029EC34C0749DB2EF; Path=/smartformup; HttpOnly
-strict-transport-security: max-age=15724800; includeSubDomains
-
