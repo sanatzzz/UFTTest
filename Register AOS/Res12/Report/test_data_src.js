@@ -1,0 +1,1 @@
+﻿var __testDataSource={items:[{dataFilePath:'Default.xlsx',dataFileFormat:'excel',dataFileFolder:'C:\\Users\\SanShetty\\Desktop\\UFT One Script\\UFTTest\\Register AOS\\Res12',namePairs:[]}]};

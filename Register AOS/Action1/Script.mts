@@ -1,5 +1,6 @@
-﻿wait(10)
+﻿wait(5)
 Browser("Advantage Shopping").Page("Advantage Shopping").Link("UserMenu").Click @@ script infofile_;_ZIP::ssf37.xml_;_
+wait(2)
 Browser("Advantage Shopping").Page("Advantage Shopping").Link("CREATE NEW ACCOUNT").Click @@ script infofile_;_ZIP::ssf38.xml_;_
 Browser("Advantage Shopping").Page("Advantage Shopping").WebEdit("usernameRegisterPage").Set "aakash" @@ script infofile_;_ZIP::ssf39.xml_;_
 Browser("Advantage Shopping").Page("Advantage Shopping").WebElement("*EmailEmail").Click @@ script infofile_;_ZIP::ssf40.xml_;_
