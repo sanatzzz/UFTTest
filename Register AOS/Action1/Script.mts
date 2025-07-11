@@ -13,6 +13,7 @@ Browser("Advantage Shopping").Page("Advantage Shopping").WebCheckBox("i_agree").
 Browser("Advantage Shopping").Page("Advantage Shopping").WebButton("register_btn").Click @@ script infofile_;_ZIP::ssf47.xml_;_
 Browser("Advantage Shopping").Page("Advantage Shopping").Sync
 Browser("Advantage Shopping").Back @@ hightlight id_;_198482_;_script infofile_;_ZIP::ssf48.xml_;_
+Reporter.ReportEvent micFail,"Register","User not created"
 
  @@ script infofile_;_ZIP::ssf32.xml_;_
  @@ script infofile_;_ZIP::ssf36.xml_;_
